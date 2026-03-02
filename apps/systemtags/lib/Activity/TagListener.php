@@ -127,7 +127,7 @@ class TagListener implements IEventListener {
 		foreach ($event->getObjectIds() as $objectId) {
 			$mounts = $cache->getMountsForFileId((int)$objectId);
 			if (empty($mounts)) {
-				return;
+				continue;
 			}
 
 			$users = [];
