@@ -38,11 +38,11 @@ class BeforeZipCreatedListener implements IEventListener {
 		$files = $event->getFiles();
 
 		if (empty($files)) {
-			$pathsToCheck = [$dir];
+			$pathsToCheck = [];
 		} else {
 			$pathsToCheck = [];
 			foreach ($files as $file) {
-				$pathsToCheck[] = $dir . '/' . $file;
+				$pathsToCheck[] = $file;
 			}
 		}
 
@@ -58,7 +58,7 @@ class BeforeZipCreatedListener implements IEventListener {
 		$userFolder = $user ? $this->rootFolder->getUserFolder($user->getUID()) : null;
 		$folderToCheck = $userFolder ? $userFolder->get($dir) : $folder;
 
-		$viewOnlyHandler = new ViewOnly($userFolder);
+		$viewOnlyHandler = new ViewOnly($folderToCheck);
 		$isRootDownloadable = $viewOnlyHandler->isDownloadable($folderToCheck);
 
 		if (!$isRootDownloadable) {
