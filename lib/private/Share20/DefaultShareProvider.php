@@ -388,8 +388,7 @@ class DefaultShareProvider implements
 					], IQueryBuilder::PARAM_INT_ARRAY)
 				)
 			)
-			->andWhere($qb->expr()->in('item_type', $qb->createNamedParameter(['file', 'folder'], IQueryBuilder::PARAM_STR_ARRAY)))
-			->orderBy('id');
+			->andWhere($qb->expr()->in('item_type', $qb->createNamedParameter(['file', 'folder'], IQueryBuilder::PARAM_STR_ARRAY)));
 
 		$cursor = $qb->executeQuery();
 		while ($data = $cursor->fetch()) {
@@ -673,8 +672,6 @@ class DefaultShareProvider implements
 			)
 		);
 
-		$qb->orderBy('id');
-
 		$shares = [];
 
 		$chunks = array_chunk($childMountRootIds, 1000);
@@ -732,7 +729,9 @@ class DefaultShareProvider implements
 		}
 
 		$qb->setFirstResult($offset);
-		$qb->orderBy('id');
+		if ($offset !== 0 || $limit !== -1) {
+			$qb->orderBy('id');
+		}
 
 		$cursor = $qb->executeQuery();
 		$shares = [];
@@ -801,7 +800,6 @@ class DefaultShareProvider implements
 			->andWhere($qb->expr()->eq('file_source', $qb->createNamedParameter($path->getId())))
 			->andWhere($qb->expr()->in('share_type', $qb->createNamedParameter([IShare::TYPE_USER, IShare::TYPE_GROUP, IShare::TYPE_LINK], IQueryBuilder::PARAM_INT_ARRAY)))
 			->andWhere($qb->expr()->in('item_type', $qb->createNamedParameter(['file', 'folder'], IQueryBuilder::PARAM_STR_ARRAY)))
-			->orderBy('id', 'ASC')
 			->executeQuery();
 
 		$shares = [];
@@ -894,8 +892,10 @@ class DefaultShareProvider implements
 				->leftJoin('s', 'filecache', 'f', $qb->expr()->eq('s.file_source', 'f.fileid'))
 				->leftJoin('f', 'storages', 'st', $qb->expr()->eq('f.storage', 'st.numeric_id'));
 
-			// Order by id
-			$qb->orderBy('s.id');
+			if ($offset !== 0 || $limit !== -1) {
+				// Order by id
+				$qb->orderBy('id');
+			}
 
 			// Set limit and offset
 			if ($limit !== -1) {
@@ -964,8 +964,11 @@ class DefaultShareProvider implements
 					->from('share', 's')
 					->leftJoin('s', 'filecache', 'f', $qb->expr()->eq('s.file_source', 'f.fileid'))
 					->leftJoin('f', 'storages', 'st', $qb->expr()->eq('f.storage', 'st.numeric_id'))
-					->orderBy('s.id')
 					->setFirstResult(0);
+
+				if ($offset !== 0 || $limit !== -1) {
+					$qb->orderBy('id');
+				}
 
 				if ($limit !== -1) {
 					$qb->setMaxResults($limit - count($shares));
