@@ -4,29 +4,45 @@
 -->
 
 <template>
-	<nav
-		ref="appMenu"
-		class="app-menu"
-		:aria-label="t('core', 'Applications menu')">
-		<ul
-			:aria-label="t('core', 'Apps')"
-			class="app-menu__list">
-			<AppMenuEntry
-				v-for="app in mainAppList"
-				:key="app.id"
-				:app="app" />
-		</ul>
-		<NcActions class="app-menu__overflow" :aria-label="t('core', 'More apps')">
-			<NcActionLink
-				v-for="app in popoverAppList"
-				:key="app.id"
-				:aria-current="app.active ? 'page' : false"
-				:href="app.href"
-				:icon="app.icon"
-				class="app-menu__overflow-entry">
-				{{ app.name }}
-			</NcActionLink>
-		</NcActions>
+	<nav class="app-menu" :aria-label="t('core', 'Applications')">
+		<NcPopover
+			:shown="opened"
+			:triggers="[]"
+			placement="bottom-start"
+			@show="opened = true"
+			@hide="opened = false">
+			<template #trigger>
+				<NcButton
+					ref="trigger"
+					class="app-menu__trigger"
+					variant="tertiary-no-background"
+					:aria-label="t('core', 'Open apps menu')"
+					aria-haspopup="menu"
+					:aria-expanded="opened ? 'true' : 'false'"
+					@click="opened = !opened">
+					<template #icon>
+						<IconDotsGrid :size="20" />
+					</template>
+				</NcButton>
+			</template>
+
+			<div
+				class="app-menu__popover"
+				role="menu"
+				:aria-label="t('core', 'Apps')">
+				<div class="app-menu__grid">
+					<AppItem
+						v-for="app in appList"
+						:key="app.id"
+						:app="app"
+						new-tab />
+					<AppItem
+						v-if="isAdmin"
+						:app="moreAppsEntry"
+						new-tab />
+				</div>
+			</div>
+		</NcPopover>
 	</nav>
 </template>
 
@@ -36,30 +52,31 @@ import type { INavigationEntry } from '../types/navigation.d.ts'
 import { subscribe, unsubscribe } from '@nextcloud/event-bus'
 import { loadState } from '@nextcloud/initial-state'
 import { n, t } from '@nextcloud/l10n'
-import { useElementSize } from '@vueuse/core'
+import { generateFilePath, generateUrl } from '@nextcloud/router'
 import { defineComponent, ref } from 'vue'
-import NcActionLink from '@nextcloud/vue/components/NcActionLink'
-import NcActions from '@nextcloud/vue/components/NcActions'
-import AppMenuEntry from './AppMenuEntry.vue'
+import NcButton from '@nextcloud/vue/components/NcButton'
+import NcPopover from '@nextcloud/vue/components/NcPopover'
+import IconDotsGrid from 'vue-material-design-icons/DotsGrid.vue'
+import AppItem from './AppItem.vue'
+import { isUserAdmin } from '../OC/admin.js'
 import logger from '../logger.js'
 
 export default defineComponent({
 	name: 'AppMenu',
 
 	components: {
-		AppMenuEntry,
-		NcActions,
-		NcActionLink,
+		AppItem,
+		IconDotsGrid,
+		NcButton,
+		NcPopover,
 	},
 
 	setup() {
-		const appMenu = ref()
-		const { width: appMenuWidth } = useElementSize(appMenu)
+		const opened = ref(false)
 		return {
 			t,
 			n,
-			appMenu,
-			appMenuWidth,
+			opened,
 		}
 	},
 
@@ -67,25 +84,22 @@ export default defineComponent({
 		const appList = loadState<INavigationEntry[]>('core', 'apps', [])
 		return {
 			appList,
+			isAdmin: isUserAdmin(),
 		}
 	},
 
 	computed: {
-		appLimit() {
-			const maxApps = Math.floor(this.appMenuWidth / 50)
-			if (maxApps < this.appList.length) {
-				// Ensure there is space for the overflow menu
-				return Math.max(maxApps - 1, 0)
+		moreAppsEntry(): INavigationEntry {
+			return {
+				id: 'more-apps',
+				active: false,
+				order: Number.MAX_SAFE_INTEGER,
+				href: generateUrl('/settings/apps'),
+				icon: generateFilePath('settings', 'img', 'apps.svg'),
+				type: 'link',
+				name: t('core', 'More apps'),
+				unread: 0,
 			}
-			return maxApps
-		},
-
-		mainAppList() {
-			return this.appList.slice(0, this.appLimit)
-		},
-
-		popoverAppList() {
-			return this.appList.slice(this.appLimit)
 		},
 	},
 
@@ -101,7 +115,7 @@ export default defineComponent({
 		setNavigationCounter(id: string, counter: number) {
 			const app = this.appList.find(({ app }) => app === id)
 			if (app) {
-				this.$set(app, 'unread', counter)
+				app.unread = counter
 			} else {
 				logger.warn(`Could not find app "${id}" for setting navigation count`)
 			}
@@ -116,49 +130,22 @@ export default defineComponent({
 
 <style scoped lang="scss">
 .app-menu {
-	// The size the currently focussed entry will grow to show the full name
-	--app-menu-entry-growth: calc(var(--default-grid-baseline) * 4);
 	display: flex;
-	flex: 1 1;
-	width: 0;
+	align-items: center;
 
-	&__list {
-		display: flex;
-		flex-wrap: nowrap;
-		margin-inline: calc(var(--app-menu-entry-growth) / 2);
+	&__trigger {
+		color: var(--color-background-plain-text);
 	}
 
-	&__overflow {
-		margin-block: auto;
-
-		// Adjust the overflow NcActions styles as they are directly rendered on the background
-		:deep(.button-vue--vue-tertiary) {
-			opacity: .7;
-			margin: 3px;
-			filter: var(--background-image-invert-if-bright);
-
-			/* Remove all background and align text color if not expanded */
-			&:not([aria-expanded="true"]) {
-				color: var(--color-background-plain-text);
-
-				&:hover {
-					opacity: 1;
-					background-color: transparent !important;
-				}
-			}
-
-			&:focus-visible {
-				opacity: 1;
-				outline: none !important;
-			}
-		}
+	&__popover {
+		padding: calc(var(--default-grid-baseline) * 2);
+		max-width: calc(var(--default-grid-baseline) * 60);
 	}
 
-	&__overflow-entry {
-		:deep(.action-link__icon) {
-			// Icons are bright so invert them if bright color theme == bright background is used
-			filter: var(--background-invert-if-bright) !important;
-		}
+	&__grid {
+		display: grid;
+		grid-template-columns: repeat(5, minmax(0, 1fr));
+		gap: var(--default-grid-baseline);
 	}
 }
 </style>

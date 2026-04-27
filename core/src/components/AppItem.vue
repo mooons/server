@@ -1,0 +1,144 @@
+<!--
+  - SPDX-FileCopyrightText: 2026 Nextcloud GmbH and Nextcloud contributors
+  - SPDX-License-Identifier: AGPL-3.0-or-later
+-->
+
+<template>
+	<a
+		class="app-item"
+		:class="{ 'app-item--active': app.active }"
+		:href="app.href"
+		:target="newTab ? '_blank' : undefined"
+		:rel="newTab ? 'noopener noreferrer' : undefined"
+		:aria-current="app.active ? 'page' : undefined"
+		:title="app.name"
+		role="menuitem">
+		<span class="app-item__circle">
+			<img
+				class="app-item__icon"
+				:src="app.icon"
+				alt=""
+				aria-hidden="true">
+			<span
+				v-if="app.unread"
+				class="app-item__unread"
+				aria-hidden="true" />
+		</span>
+		<span class="app-item__label">
+			{{ app.name }}
+			<span v-if="app.unread" class="hidden-visually">, {{ unreadLabel }}</span>
+		</span>
+	</a>
+</template>
+
+<script setup lang="ts">
+import type { INavigationEntry } from '../types/navigation.d.ts'
+
+import { computed } from 'vue'
+import { n } from '@nextcloud/l10n'
+
+const props = withDefaults(defineProps<{
+	app: INavigationEntry
+	/** When true, the link opens in a new tab. Launcher uses true; Dashboard reuse will use false. */
+	newTab?: boolean
+}>(), {
+	newTab: false,
+})
+
+const unreadLabel = computed(() => {
+	if (!props.app.unread) {
+		return undefined
+	}
+	return n(
+		'core',
+		'{count} notification',
+		'{count} notifications',
+		props.app.unread,
+		{ count: props.app.unread },
+	)
+})
+</script>
+
+<style scoped lang="scss">
+.app-item {
+	--app-item-circle-size: calc(var(--default-clickable-area) + var(--default-grid-baseline) * 2);
+	--app-item-icon-size: calc(var(--app-item-circle-size) * 0.45);
+
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: var(--default-grid-baseline);
+	padding: var(--default-grid-baseline);
+	border-radius: var(--border-radius-element);
+	text-decoration: none;
+	color: var(--color-main-text);
+	min-width: 0;
+
+	&:hover,
+	&:focus-visible {
+		background-color: var(--color-background-hover);
+	}
+
+	&:focus-visible {
+		outline: 2px solid var(--color-primary-element);
+		outline-offset: 2px;
+	}
+
+	&__circle {
+		box-sizing: border-box;
+		position: relative;
+		width: var(--app-item-circle-size);
+		height: var(--app-item-circle-size);
+		border-radius: 50%;
+		background-color: var(--color-primary-element);
+		// Linear overlay for top highlight + bottom shade, layered on the theme color
+		background-image: linear-gradient(
+			to bottom,
+			rgba(255, 255, 255, 0.18) 0%,
+			rgba(255, 255, 255, 0) 45%,
+			rgba(0, 0, 0, 0.15) 100%
+		);
+		box-shadow:
+			inset 0 1px 0 0 rgba(255, 255, 255, 0.25),
+			inset 0 -1px 0 0 rgba(0, 0, 0, 0.2),
+			0 2px 4px rgba(0, 0, 0, 0.15);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	&__icon {
+		width: var(--app-item-icon-size);
+		height: var(--app-item-icon-size);
+		// Force monochrome icons to white on the colored circle
+		filter: brightness(0) invert(1);
+		opacity: 0.95;
+	}
+
+	&__unread {
+		position: absolute;
+		top: 0;
+		inset-inline-end: 0;
+		width: 12px;
+		height: 12px;
+		border-radius: 50%;
+		background-color: var(--color-error);
+		border: 2px solid var(--color-main-background);
+		box-sizing: content-box;
+	}
+
+	&__label {
+		font-size: var(--default-font-size);
+		line-height: 1.3;
+		text-align: center;
+		color: var(--color-main-text);
+		word-wrap: break-word;
+		max-width: 100%;
+		letter-spacing: -0.5px;
+	}
+
+	&--active &__label {
+		font-weight: bold;
+	}
+}
+</style>
