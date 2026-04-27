@@ -42,7 +42,7 @@ class Share implements IShare {
 	private $sharedBy;
 	/** @var string */
 	private $shareOwner;
-	/** @var int */
+	/** @var int-mask-of<Constants::PERMISSION_*> */
 	private $permissions;
 	/** @var IAttributes */
 	private $attributes;
@@ -286,22 +286,16 @@ class Share implements IShare {
 		return $this->sharedWithAvatar;
 	}
 
-	/**
-	 * @inheritdoc
-	 */
 	#[\Override]
-	public function setPermissions($permissions) {
+	public function setPermissions(int $permissions): self {
 		//TODO checks
 
 		$this->permissions = $permissions;
 		return $this;
 	}
 
-	/**
-	 * @inheritdoc
-	 */
 	#[\Override]
-	public function getPermissions() {
+	public function getPermissions(): int {
 		return $this->permissions;
 	}
 
