@@ -13,8 +13,7 @@
 			@hide="opened = false">
 			<template #trigger>
 				<NcButton
-					ref="trigger"
-					class="app-menu__trigger"
+					class="app-menu__waffle"
 					variant="tertiary-no-background"
 					:aria-label="t('core', 'Open apps menu')"
 					aria-haspopup="menu"
@@ -35,14 +34,31 @@
 						v-for="app in appList"
 						:key="app.id"
 						:app="app"
-						new-tab />
+						:newTab="true" />
 					<AppItem
 						v-if="isAdmin"
 						:app="moreAppsEntry"
-						new-tab />
+						:newTab="true" />
 				</div>
 			</div>
 		</NcPopover>
+		<button
+			v-if="currentApp"
+			class="app-menu__current-app"
+			type="button"
+			:aria-label="t('core', 'Open apps menu')"
+			aria-haspopup="menu"
+			:aria-expanded="opened ? 'true' : 'false'"
+			@click="opened = !opened">
+			<img
+				class="app-menu__current-app-icon"
+				:src="currentApp.icon"
+				alt=""
+				aria-hidden="true">
+			<span class="app-menu__current-app-name">
+				{{ currentApp.name }}
+			</span>
+		</button>
 	</nav>
 </template>
 
@@ -89,6 +105,10 @@ export default defineComponent({
 	},
 
 	computed: {
+		currentApp(): INavigationEntry | undefined {
+			return this.appList.find((app) => app.active)
+		},
+
 		moreAppsEntry(): INavigationEntry {
 			return {
 				id: 'more-apps',
@@ -133,19 +153,67 @@ export default defineComponent({
 	display: flex;
 	align-items: center;
 
-	&__trigger {
+	&__triggers {
+		display: flex;
+		align-items: center;
+		gap: var(--default-grid-baseline);
+	}
+
+	&__waffle {
 		color: var(--color-background-plain-text);
+	}
+
+	&__current-app {
+		display: flex;
+		align-items: center;
+		gap: var(--default-grid-baseline);
+		height: var(--default-clickable-area);
+		padding-inline: calc(var(--default-grid-baseline) * 2);
+		background: transparent;
+		border: none;
+		border-radius: var(--border-radius-element);
+		color: var(--color-background-plain-text);
+		cursor: pointer;
+
+		&:hover,
+		&:focus-visible {
+			background: var(--color-background-hover);
+		}
+
+		&:focus-visible {
+			outline: 2px solid var(--color-primary-element);
+			outline-offset: 2px;
+		}
+	}
+
+	&__current-app-icon {
+		width: 20px;
+		height: 20px;
+		filter: var(--background-image-invert-if-bright);
+	}
+
+	&__current-app-name {
+		font-size: var(--default-font-size);
+		font-weight: 500;
+		white-space: nowrap;
+		letter-spacing: -0.5px;
 	}
 
 	&__popover {
 		padding: calc(var(--default-grid-baseline) * 2);
-		max-width: calc(var(--default-grid-baseline) * 60);
+		max-width: calc(100vw - var(--default-grid-baseline) * 4);
 	}
 
 	&__grid {
+		--app-item-col-width: 80px;
+		--app-item-row-height: 74px;
+		--app-menu-rows-visible: 3;
 		display: grid;
-		grid-template-columns: repeat(5, minmax(0, 1fr));
+		grid-template-columns: repeat(4, var(--app-item-col-width));
+		grid-auto-rows: minmax(var(--app-item-row-height), max-content);
 		gap: var(--default-grid-baseline);
+		max-height: calc(var(--app-item-row-height) * var(--app-menu-rows-visible) + var(--default-grid-baseline) * (var(--app-menu-rows-visible) - 1));
+		overflow-y: auto;
 	}
 }
 </style>

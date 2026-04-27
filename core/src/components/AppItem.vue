@@ -61,8 +61,8 @@ const unreadLabel = computed(() => {
 
 <style scoped lang="scss">
 .app-item {
-	--app-item-circle-size: calc(var(--default-clickable-area) + var(--default-grid-baseline) * 2);
-	--app-item-icon-size: calc(var(--app-item-circle-size) * 0.45);
+	--app-item-circle-size: 40px;
+	--app-item-icon-size: 22px;
 
 	display: flex;
 	flex-direction: column;
@@ -128,13 +128,14 @@ const unreadLabel = computed(() => {
 	}
 
 	&__label {
-		font-size: var(--default-font-size);
+		font-size: 12px;
 		line-height: 1.3;
 		text-align: center;
 		color: var(--color-main-text);
-		word-wrap: break-word;
+		word-break: normal;
+		overflow-wrap: break-word;
 		max-width: 100%;
-		letter-spacing: -0.5px;
+		letter-spacing: -0.3px;
 	}
 
 	&--active &__label {
