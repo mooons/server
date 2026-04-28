@@ -233,6 +233,13 @@ export default defineComponent({
 		// gap: var(--default-grid-baseline);
 		max-height: calc(var(--app-item-row-height) * var(--app-menu-rows-visible));
 		overflow-y: auto;
+
+		// Firefox understands the standard scrollbar properties directly here.
+		// The WebKit equivalents live in the unscoped block at the bottom of
+		// the file because Vue's scoped CSS doesn't always propagate the
+		// data attribute onto ::-webkit-scrollbar pseudo-elements in Chrome.
+		scrollbar-width: thin;
+		scrollbar-color: var(--color-scrollbar) transparent;
 	}
 }
 </style>
@@ -246,5 +253,30 @@ export default defineComponent({
 .app-menu__popover-base {
 	--border-radius-large: var(--border-radius-container-large);
 	--border-radius-element: var(--border-radius-container-large);
+}
+
+// Slim scrollbar for the apps grid. Lives outside the scoped block so the
+// ::-webkit-scrollbar pseudo-elements bind reliably in Chrome. !important
+// overrides the global rules in core/css/styles.scss, which otherwise force
+// a 12 px thumb with a transparent border and content-box clip.
+.app-menu__popover-base .app-menu__grid {
+	scrollbar-width: thin !important;
+	scrollbar-color: var(--color-scrollbar) transparent !important;
+
+	&::-webkit-scrollbar {
+		width: 6px !important;
+		height: 6px !important;
+	}
+
+	&::-webkit-scrollbar-track {
+		background: transparent !important;
+	}
+
+	&::-webkit-scrollbar-thumb {
+		background-color: var(--color-scrollbar) !important;
+		border: none !important;
+		border-radius: 3px !important;
+		background-clip: padding-box !important;
+	}
 }
 </style>
