@@ -6,7 +6,10 @@
 <template>
 	<a
 		class="app-item"
-		:class="{ 'app-item--active': app.active }"
+		:class="{
+			'app-item--active': app.active,
+			'app-item--outlined': outlined,
+		}"
 		:href="app.href"
 		:target="newTab ? '_blank' : undefined"
 		:rel="newTab ? 'noopener noreferrer' : undefined"
@@ -41,8 +44,11 @@ const props = withDefaults(defineProps<{
 	app: INavigationEntry
 	/** When true, the link opens in a new tab. Launcher uses true; Dashboard reuse will use false. */
 	newTab?: boolean
+	/** When true, render the circle as an outline only (used for "More apps" / utility entries). */
+	outlined?: boolean
 }>(), {
 	newTab: false,
+	outlined: false,
 })
 
 const unreadLabel = computed(() => {
@@ -68,7 +74,6 @@ const unreadLabel = computed(() => {
 	flex-direction: column;
 	align-items: center;
 	gap: var(--default-grid-baseline);
-	padding: var(--default-grid-baseline);
 	border-radius: var(--border-radius-element);
 	text-decoration: none;
 	color: var(--color-main-text);
@@ -110,9 +115,11 @@ const unreadLabel = computed(() => {
 	&__icon {
 		width: var(--app-item-icon-size);
 		height: var(--app-item-icon-size);
-		// Force monochrome icons to white on the colored circle
+		// Force the icon to white on the colored circle, then apply the
+		// same vertical alpha gradient (--header-menu-icon-mask) used in
+		// the header so icons read consistently across the design.
 		filter: brightness(0) invert(1);
-		opacity: 0.95;
+		mask: var(--header-menu-icon-mask);
 	}
 
 	&__unread {
@@ -140,6 +147,19 @@ const unreadLabel = computed(() => {
 
 	&--active &__label {
 		font-weight: bold;
+	}
+
+	// Outlined variant: thin circle border, no fill, no gradient/shadow,
+	// icon stays in its source color instead of being forced white.
+	&--outlined &__circle {
+		background: transparent;
+		background-image: none;
+		box-shadow: inset 0 0 0 2px var(--color-border-maxcontrast);
+	}
+
+	&--outlined &__icon {
+		filter: none;
+		mask: none;
 	}
 }
 </style>

@@ -9,6 +9,9 @@
 			:shown="opened"
 			:triggers="[]"
 			placement="bottom-start"
+			:distance="8"
+			:skidding="-82"
+			popoverBaseClass="app-menu__popover-base"
 			@show="opened = true"
 			@hide="opened = false">
 			<template #trigger>
@@ -38,7 +41,8 @@
 					<AppItem
 						v-if="isAdmin"
 						:app="moreAppsEntry"
-						:newTab="true" />
+						:newTab="true"
+						:outlined="true" />
 				</div>
 			</div>
 		</NcPopover>
@@ -127,7 +131,7 @@ export default defineComponent({
 		subscribe('nextcloud:app-menu.refresh', this.setApps)
 	},
 
-	beforeDestroy() {
+	beforeUnmount() {
 		unsubscribe('nextcloud:app-menu.refresh', this.setApps)
 	},
 
@@ -160,7 +164,15 @@ export default defineComponent({
 	}
 
 	&__waffle {
+		// NcButton's tertiary-no-background variant uses --color-main-text,
+		// which is dark on light themes. The header sits on the theme primary
+		// background, so override to use the matching plain-text color.
+		--color-main-text: var(--color-background-plain-text);
 		color: var(--color-background-plain-text);
+
+		:deep(.button-vue) {
+			color: var(--color-background-plain-text);
+		}
 	}
 
 	&__current-app {
@@ -177,7 +189,10 @@ export default defineComponent({
 
 		&:hover,
 		&:focus-visible {
-			background: var(--color-background-hover);
+			// The header sits on the theme-primary background with white text,
+			// so --color-background-hover (white-ish) collapses contrast.
+			// A translucent black overlay reads on any header tint.
+			background: rgba(0, 0, 0, 0.1);
 		}
 
 		&:focus-visible {
@@ -189,7 +204,11 @@ export default defineComponent({
 	&__current-app-icon {
 		width: 20px;
 		height: 20px;
+		// Match the old AppMenuIcon: theme-aware inversion plus a vertical
+		// alpha gradient (defined in theming as --header-menu-icon-mask)
+		// to give the icon a subtle fade toward the bottom.
 		filter: var(--background-image-invert-if-bright);
+		mask: var(--header-menu-icon-mask);
 	}
 
 	&__current-app-name {
@@ -200,20 +219,32 @@ export default defineComponent({
 	}
 
 	&__popover {
-		padding: calc(var(--default-grid-baseline) * 2);
+		padding: calc(var(--default-grid-baseline) * 6) calc(var(--default-grid-baseline) * 4);
 		max-width: calc(100vw - var(--default-grid-baseline) * 4);
 	}
 
 	&__grid {
-		--app-item-col-width: 80px;
-		--app-item-row-height: 74px;
+		--app-item-col-width: 65px;
+		--app-item-row-height: 66px;
 		--app-menu-rows-visible: 3;
 		display: grid;
 		grid-template-columns: repeat(4, var(--app-item-col-width));
 		grid-auto-rows: minmax(var(--app-item-row-height), max-content);
-		gap: var(--default-grid-baseline);
-		max-height: calc(var(--app-item-row-height) * var(--app-menu-rows-visible) + var(--default-grid-baseline) * (var(--app-menu-rows-visible) - 1));
+		// gap: var(--default-grid-baseline);
+		max-height: calc(var(--app-item-row-height) * var(--app-menu-rows-visible));
 		overflow-y: auto;
 	}
+}
+</style>
+
+<!-- The popover content is teleported to <body>, so scoped styles can't
+     reach it. The bundled NcPopover (legacy frontend, v8) reads
+     `var(--border-radius-large)` on its wrapper/inner, so we override that
+     token scoped to this popover. The newer 9.x line uses
+     `--border-radius-element` instead, so we set both for forward-compat. -->
+<style lang="scss">
+.app-menu__popover-base {
+	--border-radius-large: var(--border-radius-container-large);
+	--border-radius-element: var(--border-radius-container-large);
 }
 </style>
