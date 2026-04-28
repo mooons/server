@@ -480,7 +480,7 @@ class Router implements IRouter {
 			} catch (AppPathNotFoundException) {
 				return [];
 			}
-			$appNameSpace = App::buildAppNamespace($app);
+			$appNameSpace = $this->appManager->getAppNamespace($app);
 		}
 
 		if (!file_exists($appControllerPath)) {
@@ -550,7 +550,7 @@ class Router implements IRouter {
 	}
 
 	private function getApplicationClass(string $appName) {
-		$appNameSpace = App::buildAppNamespace($appName);
+		$appNameSpace = $this->appManager->getAppNamespace($appName);
 
 		$applicationClassName = $appNameSpace . '\\AppInfo\\Application';
 
