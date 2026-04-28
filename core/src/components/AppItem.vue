@@ -74,6 +74,9 @@ const unreadLabel = computed(() => {
 	flex-direction: column;
 	align-items: center;
 	gap: var(--default-grid-baseline);
+	// Inset so the hover/focus highlight floats around the circle and label
+	// rather than sitting flush against the icon at the top edge.
+	padding-block: var(--default-grid-baseline);
 	border-radius: var(--border-radius-element);
 	text-decoration: none;
 	color: var(--color-main-text);

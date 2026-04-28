@@ -9,7 +9,7 @@
 			:shown="opened"
 			:triggers="[]"
 			placement="bottom-start"
-			:distance="8"
+			:distance="30"
 			:skidding="-82"
 			popoverBaseClass="app-menu__popover-base"
 			@show="opened = true"
@@ -37,11 +37,11 @@
 						v-for="app in appList"
 						:key="app.id"
 						:app="app"
-						:newTab="true" />
+						:newTab="openInNewTab" />
 					<AppItem
 						v-if="isAdmin"
 						:app="moreAppsEntry"
-						:newTab="true"
+						:newTab="openInNewTab"
 						:outlined="true" />
 				</div>
 			</div>
@@ -113,6 +113,12 @@ export default defineComponent({
 			return this.appList.find((app) => app.active)
 		},
 
+		// Open links in the same tab when launching from Dashboard, new tab
+		// otherwise. Mirrors Google's behavior and the design decision in #59888.
+		openInNewTab(): boolean {
+			return this.currentApp?.id !== 'dashboard'
+		},
+
 		moreAppsEntry(): INavigationEntry {
 			return {
 				id: 'more-apps',
@@ -170,8 +176,27 @@ export default defineComponent({
 		--color-main-text: var(--color-background-plain-text);
 		color: var(--color-background-plain-text);
 
+		// Mirror the current-app trigger's hover/active/focus feedback so
+		// both popover triggers behave identically. Reach through NcButton's
+		// shadow with :deep(.button-vue). Translucent-black overlays read on
+		// any header tint (--color-background-hover is white-ish and would
+		// collapse contrast on the theme-primary background).
 		:deep(.button-vue) {
 			color: var(--color-background-plain-text);
+
+			&:not(:disabled):hover {
+				background-color: rgba(0, 0, 0, 0.1);
+			}
+
+			&:not(:disabled):active {
+				background-color: rgba(0, 0, 0, 0.15);
+			}
+
+			&:focus-visible {
+				background-color: rgba(0, 0, 0, 0.1);
+				outline: none;
+				box-shadow: inset 0 0 0 2px var(--color-background-plain-text);
+			}
 		}
 	}
 
@@ -186,18 +211,34 @@ export default defineComponent({
 		border-radius: var(--border-radius-element);
 		color: var(--color-background-plain-text);
 		cursor: pointer;
+		// Suppress the mobile-Safari grey tap rectangle that briefly flashes on press.
+		-webkit-tap-highlight-color: transparent;
 
-		&:hover,
-		&:focus-visible {
-			// The header sits on the theme-primary background with white text,
-			// so --color-background-hover (white-ish) collapses contrast.
-			// A translucent black overlay reads on any header tint.
+		// The header sits on the theme-primary background with white text, so
+		// --color-background-hover (white-ish) collapses contrast. A translucent
+		// black overlay reads on any header tint.
+		&:hover {
 			background: rgba(0, 0, 0, 0.1);
 		}
 
+		// Override the global rule at core/css/inputs.scss:89 which sets
+		// `button:not(:disabled, .primary):not(.app-navigation-entry-button):active`
+		// to `background-color: var(--color-main-background)` — white on light
+		// themes, which makes the masked icon read as white-on-white. !important
+		// is needed because the global rule lives inside a deeply-chained
+		// :not() selector that's hard to out-specify cleanly.
+		&:active {
+			background-color: rgba(0, 0, 0, 0.15) !important;
+			color: var(--color-background-plain-text) !important;
+		}
+
+		// Inset box-shadow instead of an outline keeps the focus indicator
+		// inside the rounded rectangle and reads softer than the previous
+		// 2 px primary-color outline (which Jan flagged as a "white flash").
 		&:focus-visible {
-			outline: 2px solid var(--color-primary-element);
-			outline-offset: 2px;
+			background: rgba(0, 0, 0, 0.1);
+			outline: none;
+			box-shadow: inset 0 0 0 2px var(--color-background-plain-text);
 		}
 	}
 
@@ -219,19 +260,19 @@ export default defineComponent({
 	}
 
 	&__popover {
-		padding: calc(var(--default-grid-baseline) * 6) calc(var(--default-grid-baseline) * 4);
 		max-width: calc(100vw - var(--default-grid-baseline) * 4);
+		background-color: var(--color-main-background);
 	}
 
 	&__grid {
-		--app-item-col-width: 65px;
-		--app-item-row-height: 66px;
-		--app-menu-rows-visible: 3;
+		--app-item-col-width: 69px;
+		--app-item-row-height: 64px;
+		--app-menu-rows-visible: 6;
+		padding: calc(var(--default-grid-baseline) * 3) calc(var(--default-grid-baseline) * 2);
 		display: grid;
 		grid-template-columns: repeat(4, var(--app-item-col-width));
 		grid-auto-rows: minmax(var(--app-item-row-height), max-content);
-		// gap: var(--default-grid-baseline);
-		max-height: calc(var(--app-item-row-height) * var(--app-menu-rows-visible));
+		max-height: calc(var(--app-item-row-height) * var(--app-menu-rows-visible) + var(--default-grid-baseline) * 5);
 		overflow-y: auto;
 
 		// Firefox understands the standard scrollbar properties directly here.
@@ -253,6 +294,15 @@ export default defineComponent({
 .app-menu__popover-base {
 	--border-radius-large: var(--border-radius-container-large);
 	--border-radius-element: var(--border-radius-container-large);
+}
+
+// The override above is meant for NcPopover's outer wrapper (which reads
+// --border-radius-element in 9.x); without a reset it cascades into our
+// content and inflates AppItem's hover radius to match the popover. Restore
+// the system default (apps/theming/css/default.css) so inner elements use
+// the smaller, Dashboard-widget-like radius.
+.app-menu__popover-base .app-menu__popover {
+	--border-radius-element: 8px;
 }
 
 // Slim scrollbar for the apps grid. Lives outside the scoped block so the
