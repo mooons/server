@@ -3726,14 +3726,6 @@
       <code><![CDATA[setPassword]]></code>
     </InternalMethod>
   </file>
-  <file src="lib/private/ServerContainer.php">
-    <InvalidPropertyAssignmentValue>
-      <code><![CDATA[$this->hasNoAppContainer]]></code>
-    </InvalidPropertyAssignmentValue>
-    <NoValue>
-      <code><![CDATA[return $this->appContainers[$namespace];]]></code>
-    </NoValue>
-  </file>
   <file src="lib/private/Session/Internal.php">
     <MoreSpecificImplementedParamType>
       <code><![CDATA[$value]]></code>
