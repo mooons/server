@@ -8,7 +8,9 @@ declare(strict_types=1);
 namespace OCA\DAV\Tests\unit\CalDAV;
 
 use OCA\DAV\CalDAV\TipBroker;
+use Sabre\VObject;
 use Sabre\VObject\Component\VCalendar;
+use Sabre\VObject\ITip\Message;
 use Test\TestCase;
 
 class TipBrokerTest extends TestCase {
@@ -20,6 +22,8 @@ class TipBrokerTest extends TestCase {
 
 	protected function setUp(): void {
 		parent::setUp();
+
+		VCalendar::$propertyMap['X-NC-INVITATION-FORWARDING'] = VObject\Property\Boolean::class;
 
 		$this->broker = new TipBroker();
 
@@ -41,8 +45,8 @@ class TipBrokerTest extends TestCase {
 		$vEvent->add('DTSTART', '20240701T080000', ['TZID' => 'America/Toronto']);
 		$vEvent->add('DTEND', '20240701T090000', ['TZID' => 'America/Toronto']);
 		$vEvent->add('SUMMARY', 'Test Event');
-		$vEvent->add('ORGANIZER', 'mailto:organizer@testing.com', ['CN' => 'Organizer']);
-		$vEvent->add('ATTENDEE', 'mailto:attendee1@testing.com', [
+		$vEvent->add('ORGANIZER', 'mailto:organizer@example.org', ['CN' => 'Organizer']);
+		$vEvent->add('ATTENDEE', 'mailto:attendee1@example.org', [
 			'CN' => 'Attendee One',
 			'CUTYPE' => 'INDIVIDUAL',
 			'PARTSTAT' => 'NEEDS-ACTION',
@@ -65,14 +69,20 @@ class TipBrokerTest extends TestCase {
 		$vEvent->add('DTEND', '20240701T090000', ['TZID' => 'America/Toronto']);
 		$vEvent->add('RRULE', 'FREQ=WEEKLY;COUNT=12;BYDAY=MO');
 		$vEvent->add('SUMMARY', 'Test Event');
-		$vEvent->add('ORGANIZER', 'mailto:organizer@testing.com', ['CN' => 'Organizer']);
-		$vEvent->add('ATTENDEE', 'mailto:attendee1@testing.com', [
+		$vEvent->add('ORGANIZER', 'mailto:organizer@example.org', ['CN' => 'Organizer']);
+		$vEvent->add('ATTENDEE', 'mailto:attendee1@example.org', [
 			'CN' => 'Attendee One',
 			'CUTYPE' => 'INDIVIDUAL',
 			'PARTSTAT' => 'NEEDS-ACTION',
 			'ROLE' => 'REQ-PARTICIPANT',
 			'RSVP' => 'TRUE'
 		]);
+	}
+
+	protected function tearDown(): void {
+		unset(VCalendar::$propertyMap['X-NC-INVITATION-FORWARDING']);
+
+		parent::tearDown();
 	}
 
 	/**
@@ -159,7 +169,7 @@ class TipBrokerTest extends TestCase {
 		$mutatedCalendar = clone $this->vCalendar1a;
 		$mutatedCalendar->VEVENT->{'LAST-MODIFIED'}->setValue('20240701T020000Z');
 		$mutatedCalendar->VEVENT->SEQUENCE->setValue(2);
-		$mutatedCalendar->VEVENT->add('ATTENDEE', 'mailto:attendee2@testing.com', [
+		$mutatedCalendar->VEVENT->add('ATTENDEE', 'mailto:attendee2@example.org', [
 			'CN' => 'Attendee Two',
 			'CUTYPE' => 'INDIVIDUAL',
 			'PARTSTAT' => 'NEEDS-ACTION',
@@ -185,7 +195,7 @@ class TipBrokerTest extends TestCase {
 	public function testParseEventForOrganizerRemoveAttendee(): void {
 		// construct calendar and generate event info for modified event with two attendees
 		$originalCalendar = clone $this->vCalendar1a;
-		$originalCalendar->VEVENT->add('ATTENDEE', 'mailto:attendee2@testing.com', [
+		$originalCalendar->VEVENT->add('ATTENDEE', 'mailto:attendee2@example.org', [
 			'CN' => 'Attendee Two',
 			'CUTYPE' => 'INDIVIDUAL',
 			'PARTSTAT' => 'NEEDS-ACTION',
@@ -197,7 +207,7 @@ class TipBrokerTest extends TestCase {
 		$mutatedCalendar->VEVENT->{'LAST-MODIFIED'}->setValue('20240701T020000Z');
 		$mutatedCalendar->VEVENT->SEQUENCE->setValue(2);
 		$mutatedCalendar->VEVENT->remove('ATTENDEE');
-		$mutatedCalendar->VEVENT->add('ATTENDEE', 'mailto:attendee1@testing.com', [
+		$mutatedCalendar->VEVENT->add('ATTENDEE', 'mailto:attendee1@example.org', [
 			'CN' => 'Attendee One',
 			'CUTYPE' => 'INDIVIDUAL',
 			'PARTSTAT' => 'NEEDS-ACTION',
@@ -214,7 +224,7 @@ class TipBrokerTest extends TestCase {
 		$this->assertEquals($mutatedCalendar->VEVENT->ATTENDEE[0]->getValue(), $messages[0]->recipient);
 		$this->assertEquals('CANCEL', $messages[1]->method);
 		$this->assertEquals($mutatedCalendar->VEVENT->ORGANIZER->getValue(), $messages[1]->sender);
-		$this->assertEquals('mailto:attendee2@testing.com', $messages[1]->recipient);
+		$this->assertEquals('mailto:attendee2@example.org', $messages[1]->recipient);
 	}
 
 
@@ -377,7 +387,7 @@ class TipBrokerTest extends TestCase {
 		$originalEventInfo = $this->invokePrivate($this->broker, 'parseEventInfo', [$originalCalendar]);
 		$mutatedInstance = clone $originalInstance;
 		$mutatedInstance->SEQUENCE->setValue(2);
-		$mutatedInstance->add('ATTENDEE', 'mailto:attendee2@testing.com', [
+		$mutatedInstance->add('ATTENDEE', 'mailto:attendee2@example.org', [
 			'CN' => 'Attendee Two',
 			'CUTYPE' => 'INDIVIDUAL',
 			'PARTSTAT' => 'NEEDS-ACTION',
@@ -417,7 +427,7 @@ class TipBrokerTest extends TestCase {
 		$originalInstance->SEQUENCE->setValue(1);
 		$originalInstance->DTSTART->setValue('20240717T080000');
 		$originalInstance->DTEND->setValue('20240717T090000');
-		$originalInstance->add('ATTENDEE', 'mailto:attendee2@testing.com', [
+		$originalInstance->add('ATTENDEE', 'mailto:attendee2@example.org', [
 			'CN' => 'Attendee Two',
 			'CUTYPE' => 'INDIVIDUAL',
 			'PARTSTAT' => 'NEEDS-ACTION',
@@ -429,7 +439,7 @@ class TipBrokerTest extends TestCase {
 		$mutatedInstance = clone $originalInstance;
 		$mutatedInstance->SEQUENCE->setValue(2);
 		$mutatedInstance->remove('ATTENDEE');
-		$mutatedInstance->add('ATTENDEE', 'mailto:attendee1@testing.com', [
+		$mutatedInstance->add('ATTENDEE', 'mailto:attendee1@example.org', [
 			'CN' => 'Attendee One',
 			'CUTYPE' => 'INDIVIDUAL',
 			'PARTSTAT' => 'NEEDS-ACTION',
@@ -577,6 +587,201 @@ class TipBrokerTest extends TestCase {
 		$this->assertEquals($mutatedCalendar->VEVENT->ATTENDEE->getValue(), $messages[0]->recipient);
 		// verify SCHEDULE-FORCE-SEND is removed from the message (sanitized)
 		$this->assertFalse(isset($messages[0]->message->VEVENT->ATTENDEE['SCHEDULE-FORCE-SEND']));
+	}
+
+	public function testProcessMessageReplyDisallowsInvitationForwarding(): void {
+		$existingCalendar = clone $this->vCalendar1a;
+		$existingCalendar->VEVENT->add('X-NC-INVITATION-FORWARDING', 'FALSE');
+		$existingCalendar->VEVENT->ATTENDEE[0]->setValue('mailto:attendee1@example.org');
+		$reply = new Message();
+		$reply->uid = $existingCalendar->VEVENT->UID->getValue();
+		$reply->component = 'VEVENT';
+		$reply->sender = 'mailto:attendee2@example.org';
+		$reply->senderName = 'Attendee Two';
+		$reply->sequence = 1;
+		$reply->message = new VCalendar();
+		/** @var \Sabre\VObject\Component\VEvent $replyEvent */
+		$replyEvent = $reply->message->add('VEVENT', []);
+		$replyEvent->add('UID', $reply->uid);
+		$replyEvent->add('ATTENDEE', $reply->sender, [
+			'PARTSTAT' => 'ACCEPTED',
+		]);
+
+		$result = $this->invokePrivate($this->broker, 'processMessageReply', [$reply, $existingCalendar]);
+
+		$this->assertSame($existingCalendar, $result);
+		$this->assertCount(1, $result->VEVENT->ATTENDEE);
+		$this->assertEquals('mailto:attendee1@example.org', $result->VEVENT->ATTENDEE[0]->getValue());
+	}
+
+	public function testProcessMessageReplyUpdatesExistingAttendeeWhenInvitationForwardingDisabled(): void {
+		$existingCalendar = clone $this->vCalendar1a;
+		$existingCalendar->VEVENT->add('X-NC-INVITATION-FORWARDING', 'FALSE');
+		$existingCalendar->VEVENT->ATTENDEE[0]->setValue('mailto:attendee1@example.org');
+		$reply = new Message();
+		$reply->uid = $existingCalendar->VEVENT->UID->getValue();
+		$reply->component = 'VEVENT';
+		$reply->sender = 'mailto:attendee1@example.org';
+		$reply->senderName = 'Attendee One';
+		$reply->sequence = 1;
+		$reply->message = new VCalendar();
+		/** @var \Sabre\VObject\Component\VEvent $replyEvent */
+		$replyEvent = $reply->message->add('VEVENT', []);
+		$replyEvent->add('UID', $reply->uid);
+		$replyEvent->add('ATTENDEE', $reply->sender, [
+			'PARTSTAT' => 'ACCEPTED',
+		]);
+		$replyEvent->add('REQUEST-STATUS', '2.0;Success');
+
+		$result = $this->invokePrivate($this->broker, 'processMessageReply', [$reply, $existingCalendar]);
+
+		$this->assertSame($existingCalendar, $result);
+		$this->assertCount(1, $result->VEVENT->ATTENDEE);
+		$this->assertEquals('mailto:attendee1@example.org', $result->VEVENT->ATTENDEE[0]->getValue());
+		$this->assertEquals('ACCEPTED', $result->VEVENT->ATTENDEE[0]['PARTSTAT']->getValue());
+		$this->assertEquals('2.0', $result->VEVENT->ATTENDEE[0]['SCHEDULE-STATUS']->getValue());
+		$this->assertFalse(isset($result->VEVENT->ATTENDEE[0]['RSVP']));
+	}
+
+	public function testProcessMessageReplyAllowsInvitationForwarding(): void {
+		$existingCalendar = clone $this->vCalendar1a;
+		$existingCalendar->VEVENT->add('X-NC-INVITATION-FORWARDING', 'TRUE');
+		$existingCalendar->VEVENT->ATTENDEE[0]->setValue('mailto:attendee1@example.org');
+		$reply = new Message();
+		$reply->uid = $existingCalendar->VEVENT->UID->getValue();
+		$reply->component = 'VEVENT';
+		$reply->sender = 'mailto:attendee2@example.org';
+		$reply->senderName = 'Attendee Two';
+		$reply->sequence = 1;
+		$reply->message = new VCalendar();
+		/** @var \Sabre\VObject\Component\VEvent $replyEvent */
+		$replyEvent = $reply->message->add('VEVENT', []);
+		$replyEvent->add('UID', $reply->uid);
+		$replyEvent->add('ATTENDEE', $reply->sender, [
+			'PARTSTAT' => 'ACCEPTED',
+		]);
+
+		$result = $this->invokePrivate($this->broker, 'processMessageReply', [$reply, $existingCalendar]);
+
+		$this->assertSame($existingCalendar, $result);
+		$this->assertCount(2, $result->VEVENT->ATTENDEE);
+		$this->assertEquals('mailto:attendee2@example.org', $result->VEVENT->ATTENDEE[1]->getValue());
+		$this->assertEquals('ACCEPTED', $result->VEVENT->ATTENDEE[1]['PARTSTAT']->getValue());
+		$this->assertEquals('Attendee Two', $result->VEVENT->ATTENDEE[1]['CN']->getValue());
+	}
+
+	public function testProcessMessageReplyAllowsInvitationForwardingByDefault(): void {
+		$existingCalendar = clone $this->vCalendar1a;
+		$existingCalendar->VEVENT->ATTENDEE[0]->setValue('mailto:attendee1@example.org');
+		$reply = new Message();
+		$reply->uid = $existingCalendar->VEVENT->UID->getValue();
+		$reply->component = 'VEVENT';
+		$reply->sender = 'mailto:attendee2@example.org';
+		$reply->senderName = 'Attendee Two';
+		$reply->sequence = 1;
+		$reply->message = new VCalendar();
+		/** @var \Sabre\VObject\Component\VEvent $replyEvent */
+		$replyEvent = $reply->message->add('VEVENT', []);
+		$replyEvent->add('UID', $reply->uid);
+		$replyEvent->add('ATTENDEE', $reply->sender, [
+			'PARTSTAT' => 'ACCEPTED',
+		]);
+
+		$result = $this->invokePrivate($this->broker, 'processMessageReply', [$reply, $existingCalendar]);
+
+		$this->assertSame($existingCalendar, $result);
+		$this->assertCount(2, $result->VEVENT->ATTENDEE);
+		$this->assertEquals('mailto:attendee2@example.org', $result->VEVENT->ATTENDEE[1]->getValue());
+		$this->assertEquals('ACCEPTED', $result->VEVENT->ATTENDEE[1]['PARTSTAT']->getValue());
+		$this->assertEquals('Attendee Two', $result->VEVENT->ATTENDEE[1]['CN']->getValue());
+	}
+
+	public function testProcessMessageReplyDisallowsInvitationForwardingForGeneratedRecurringInstance(): void {
+		$existingCalendar = clone $this->vCalendar2a;
+		$existingCalendar->VEVENT->add('X-NC-INVITATION-FORWARDING', 'FALSE');
+		$existingCalendar->VEVENT->ATTENDEE[0]->setValue('mailto:attendee1@example.org');
+		$reply = new Message();
+		$reply->uid = $existingCalendar->VEVENT->UID->getValue();
+		$reply->component = 'VEVENT';
+		$reply->sender = 'mailto:attendee2@example.org';
+		$reply->senderName = 'Attendee Two';
+		$reply->sequence = 1;
+		$reply->message = new VCalendar();
+		/** @var \Sabre\VObject\Component\VEvent $replyEvent */
+		$replyEvent = $reply->message->add('VEVENT', []);
+		$replyEvent->add('UID', $reply->uid);
+		$replyEvent->add('RECURRENCE-ID', '20240715T080000', ['TZID' => 'America/Toronto']);
+		$replyEvent->add('ATTENDEE', $reply->sender, [
+			'PARTSTAT' => 'ACCEPTED',
+		]);
+
+		$result = $this->invokePrivate($this->broker, 'processMessageReply', [$reply, $existingCalendar]);
+
+		$this->assertSame($existingCalendar, $result);
+		$this->assertCount(1, $result->VEVENT);
+		$this->assertCount(1, $result->VEVENT->ATTENDEE);
+		$this->assertEquals('mailto:attendee1@example.org', $result->VEVENT->ATTENDEE[0]->getValue());
+	}
+
+	public function testProcessMessageReplyAllowsInvitationForwardingForGeneratedRecurringInstance(): void {
+		$existingCalendar = clone $this->vCalendar2a;
+		$existingCalendar->VEVENT->add('X-NC-INVITATION-FORWARDING', 'TRUE');
+		$existingCalendar->VEVENT->ATTENDEE[0]->setValue('mailto:attendee1@example.org');
+		$reply = new Message();
+		$reply->uid = $existingCalendar->VEVENT->UID->getValue();
+		$reply->component = 'VEVENT';
+		$reply->sender = 'mailto:attendee2@example.org';
+		$reply->senderName = 'Attendee Two';
+		$reply->sequence = 1;
+		$reply->message = new VCalendar();
+		/** @var \Sabre\VObject\Component\VEvent $replyEvent */
+		$replyEvent = $reply->message->add('VEVENT', []);
+		$replyEvent->add('UID', $reply->uid);
+		$replyEvent->add('RECURRENCE-ID', '20240715T080000', ['TZID' => 'America/Toronto']);
+		$replyEvent->add('ATTENDEE', $reply->sender, [
+			'PARTSTAT' => 'ACCEPTED',
+		]);
+
+		$result = $this->invokePrivate($this->broker, 'processMessageReply', [$reply, $existingCalendar]);
+
+		$this->assertSame($existingCalendar, $result);
+		$this->assertCount(2, $result->VEVENT);
+		$this->assertEquals('20240715T080000', $result->VEVENT[1]->{'RECURRENCE-ID'}->getValue());
+		$this->assertFalse(isset($result->VEVENT[1]->RRULE));
+		$this->assertCount(2, $result->VEVENT[1]->ATTENDEE);
+		$this->assertEquals('mailto:attendee2@example.org', $result->VEVENT[1]->ATTENDEE[1]->getValue());
+		$this->assertEquals('ACCEPTED', $result->VEVENT[1]->ATTENDEE[1]['PARTSTAT']->getValue());
+		$this->assertEquals('Attendee Two', $result->VEVENT[1]->ATTENDEE[1]['CN']->getValue());
+	}
+
+	public function testProcessMessageReplyAllowsInvitationForwardingByDefaultForGeneratedRecurringInstance(): void {
+		$existingCalendar = clone $this->vCalendar2a;
+		$existingCalendar->VEVENT->ATTENDEE[0]->setValue('mailto:attendee1@example.org');
+		$reply = new Message();
+		$reply->uid = $existingCalendar->VEVENT->UID->getValue();
+		$reply->component = 'VEVENT';
+		$reply->sender = 'mailto:attendee2@example.org';
+		$reply->senderName = 'Attendee Two';
+		$reply->sequence = 1;
+		$reply->message = new VCalendar();
+		/** @var \Sabre\VObject\Component\VEvent $replyEvent */
+		$replyEvent = $reply->message->add('VEVENT', []);
+		$replyEvent->add('UID', $reply->uid);
+		$replyEvent->add('RECURRENCE-ID', '20240715T080000', ['TZID' => 'America/Toronto']);
+		$replyEvent->add('ATTENDEE', $reply->sender, [
+			'PARTSTAT' => 'ACCEPTED',
+		]);
+
+		$result = $this->invokePrivate($this->broker, 'processMessageReply', [$reply, $existingCalendar]);
+
+		$this->assertSame($existingCalendar, $result);
+		$this->assertCount(2, $result->VEVENT);
+		$this->assertEquals('20240715T080000', $result->VEVENT[1]->{'RECURRENCE-ID'}->getValue());
+		$this->assertFalse(isset($result->VEVENT[1]->RRULE));
+		$this->assertCount(2, $result->VEVENT[1]->ATTENDEE);
+		$this->assertEquals('mailto:attendee2@example.org', $result->VEVENT[1]->ATTENDEE[1]->getValue());
+		$this->assertEquals('ACCEPTED', $result->VEVENT[1]->ATTENDEE[1]['PARTSTAT']->getValue());
+		$this->assertEquals('Attendee Two', $result->VEVENT[1]->ATTENDEE[1]['CN']->getValue());
 	}
 
 }
