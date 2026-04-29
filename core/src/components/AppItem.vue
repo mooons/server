@@ -95,9 +95,12 @@ const unreadLabel = computed(() => {
 		background-color: var(--color-background-hover);
 	}
 
+	// Inset ring instead of outline + offset: the offset version visibly
+	// clips at the popover's rounded edge for items in the first/last row
+	// or column. The inset shadow stays inside the highlight rectangle.
 	&:focus-visible {
-		outline: 2px solid var(--color-primary-element);
-		outline-offset: 2px;
+		outline: none;
+		box-shadow: inset 0 0 0 2px var(--color-primary-element);
 	}
 
 	&__circle {
