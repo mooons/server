@@ -11,7 +11,7 @@
 			:triggers="[]"
 			placement="bottom-start"
 			:distance="30"
-			:skidding="-82"
+			:skidding="popoverSkidding"
 			:setReturnFocus="returnFocusTarget"
 			popoverBaseClass="app-menu__popover-base"
 			@update:shown="opened = $event">
@@ -70,7 +70,7 @@ import type { INavigationEntry } from '../types/navigation.d.ts'
 
 import { subscribe, unsubscribe } from '@nextcloud/event-bus'
 import { loadState } from '@nextcloud/initial-state'
-import { n, t } from '@nextcloud/l10n'
+import { isRTL, n, t } from '@nextcloud/l10n'
 import { generateFilePath, generateUrl } from '@nextcloud/router'
 import { defineComponent, ref } from 'vue'
 import NcButton from '@nextcloud/vue/components/NcButton'
@@ -146,6 +146,19 @@ export default defineComponent({
 		// and include the optional "More apps" tile when admin.
 		gridItems(): INavigationEntry[] {
 			return this.isAdmin ? [...this.appList, this.moreAppsEntry] : [...this.appList]
+		},
+
+		// Cross-axis offset for the popover. Floating UI's skidding sign stays
+		// consistent regardless of writing direction (positive shifts toward
+		// the main-axis-end), so the LTR value `-82` (which tucks the popover
+		// under the logo on the start side) must be mirrored to `+82` under
+		// RTL. `placement: bottom-start` on its own already swaps the anchor
+		// edge, but the skidding offset isn't auto-mirrored. Without this
+		// flip the popover slides further off the trigger's end side in RTL.
+		// `isRTL()` is a module-init snapshot, not reactive. The language can't
+		// change at runtime in Nextcloud, so the once-computed value is correct.
+		popoverSkidding(): number {
+			return isRTL() ? 82 : -82
 		},
 	},
 
