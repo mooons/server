@@ -77,4 +77,23 @@ describe('Header: App menu (waffle launcher)', { testIsolation: true }, () => {
 				})
 		})
 	})
+
+	describe('Responsive', () => {
+		beforeEach(() => {
+			cy.createRandomUser().then(($user) => {
+				cy.login($user)
+				cy.visit('/')
+			})
+		})
+
+		// Regression guard: a popover wider than the viewport would push the
+		// page out and force horizontal scrolling on mobile, which is bad UX.
+		// 360 px is the smallest supported width per the project guidelines.
+		it('does not introduce horizontal scroll at 360 px', () => {
+			cy.viewport(360, 640)
+			getWaffleTrigger().click()
+			cy.get('.app-menu__popover-base').should('be.visible')
+			cy.document().its('documentElement.scrollWidth').should('be.lte', 360)
+		})
+	})
 })
