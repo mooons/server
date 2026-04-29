@@ -32,17 +32,15 @@
 				class="app-menu__popover"
 				role="menu"
 				:aria-label="t('core', 'Apps')">
-				<div class="app-menu__grid">
+				<div class="app-menu__grid" @keydown="onGridKeydown">
 					<AppItem
-						v-for="app in appList"
-						:key="app.id"
-						:app="app"
-						:newTab="openInNewTab" />
-					<AppItem
-						v-if="isAdmin"
-						:app="moreAppsEntry"
+						v-for="(item, i) in gridItems"
+						:key="item.id"
+						ref="items"
+						:app="item"
 						:newTab="openInNewTab"
-						:outlined="true" />
+						:outlined="item.id === 'more-apps'"
+						:tabindex="i === focusedIndex ? 0 : -1" />
 				</div>
 			</div>
 		</NcPopover>
@@ -105,6 +103,10 @@ export default defineComponent({
 		return {
 			appList,
 			isAdmin: isUserAdmin(),
+			// Roving tabindex: only the tile at this index has tabindex=0,
+			// every other tile has tabindex=-1. Arrow keys move it; Tab
+			// then takes focus out of the grid as a whole.
+			focusedIndex: 0,
 		}
 	},
 
@@ -131,10 +133,30 @@ export default defineComponent({
 				unread: 0,
 			}
 		},
+
+		// Single ordered list of every tile rendered in the grid. The roving
+		// `focusedIndex` is an index into this list, so keep ordering stable
+		// and include the optional "More apps" tile when admin.
+		gridItems(): INavigationEntry[] {
+			return this.isAdmin ? [...this.appList, this.moreAppsEntry] : [...this.appList]
+		},
+	},
+
+	watch: {
+		// On open, place the roving stop on the active app (if any) so a
+		// keyboard user lands on "you are here" rather than the first tile.
+		opened(isOpen: boolean) {
+			if (isOpen) {
+				this.focusedIndex = this.activeGridIndex()
+			}
+		},
 	},
 
 	mounted() {
 		subscribe('nextcloud:app-menu.refresh', this.setApps)
+		// Pre-seed the roving stop so the initial render already has
+		// tabindex=0 on the right tile, before the popover opens.
+		this.focusedIndex = this.activeGridIndex()
 	},
 
 	beforeUnmount() {
@@ -153,6 +175,89 @@ export default defineComponent({
 
 		setApps({ apps }: { apps: INavigationEntry[] }) {
 			this.appList = apps
+			if (this.focusedIndex >= this.gridItems.length) {
+				this.focusedIndex = this.activeGridIndex()
+			}
+		},
+
+		// Index of the active app within `gridItems`, or 0 if none is active.
+		activeGridIndex(): number {
+			const idx = this.gridItems.findIndex((app) => app.active)
+			return idx === -1 ? 0 : idx
+		},
+
+		// Roving-tabindex keyboard contract for the launcher grid.
+		// Arrow keys clamp at edges (no wrap), matching the WAI-ARIA grid
+		// pattern. Tab is intentionally NOT handled so the browser's native
+		// focus order moves out of the grid.
+		async onGridKeydown(event: KeyboardEvent) {
+			// Let modifier-bearing key combos fall through to the browser
+			// (e.g. Shift+Tab, Ctrl+ArrowRight for word jumps in inputs).
+			if (event.ctrlKey || event.metaKey || event.altKey) {
+				return
+			}
+
+			if (this.gridItems.length === 0) {
+				return
+			}
+
+			const cols = 4
+			const total = this.gridItems.length
+			const i = this.focusedIndex
+			let next = i
+
+			switch (event.key) {
+				case 'ArrowRight': {
+					// Stay put if already at the right edge of the row OR the
+					// last item; never wrap to the next row.
+					const atRowEnd = (i % cols) === cols - 1
+					if (!atRowEnd && i + 1 < total) {
+						next = i + 1
+					}
+					break
+				}
+				case 'ArrowLeft': {
+					const atRowStart = (i % cols) === 0
+					if (!atRowStart) {
+						next = i - 1
+					}
+					break
+				}
+				case 'ArrowDown': {
+					// Strict edge-clamp: if the cell directly below doesn't
+					// exist (partial bottom row), stay put.
+					if (i + cols < total) {
+						next = i + cols
+					}
+					break
+				}
+				case 'ArrowUp': {
+					if (i - cols >= 0) {
+						next = i - cols
+					}
+					break
+				}
+				case 'Home':
+					next = 0
+					break
+				case 'End':
+					next = total - 1
+					break
+				default:
+					// Tab and every other key falls through untouched.
+					return
+			}
+
+			event.preventDefault()
+			if (next !== i) {
+				this.focusedIndex = next
+			}
+
+			// Wait for the tabindex update to land before moving focus, so
+			// the destination tile is in a coherent state when we focus it.
+			await this.$nextTick()
+			const items = this.$refs.items as Array<{ $el: HTMLElement }> | undefined
+			items?.[this.focusedIndex]?.$el?.focus()
 		},
 	},
 })

@@ -14,6 +14,7 @@
 		:target="newTab ? '_blank' : undefined"
 		:rel="newTab ? 'noopener noreferrer' : undefined"
 		:aria-current="app.active ? 'page' : undefined"
+		:tabindex="tabindex"
 		:title="app.name"
 		role="menuitem">
 		<span class="app-item__circle">
@@ -46,9 +47,16 @@ const props = withDefaults(defineProps<{
 	newTab?: boolean
 	/** When true, render the circle as an outline only (used for "More apps" / utility entries). */
 	outlined?: boolean
+	/**
+	 * Roving-tabindex value. AppMenu sets this to 0 on the focused tile and
+	 * -1 on all other tiles so only one stop is in the natural Tab order.
+	 * Default -1 keeps tiles out of the Tab order when used standalone.
+	 */
+	tabindex?: number
 }>(), {
 	newTab: false,
 	outlined: false,
+	tabindex: -1,
 })
 
 const unreadLabel = computed(() => {
