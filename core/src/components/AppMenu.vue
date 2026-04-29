@@ -6,14 +6,15 @@
 <template>
 	<nav class="app-menu" :aria-label="t('core', 'Applications')">
 		<NcPopover
+			ref="popover"
 			:shown="opened"
 			:triggers="[]"
 			placement="bottom-start"
 			:distance="30"
 			:skidding="-82"
+			:setReturnFocus="returnFocusTarget"
 			popoverBaseClass="app-menu__popover-base"
-			@show="opened = true"
-			@hide="opened = false">
+			@update:shown="opened = $event">
 			<template #trigger>
 				<NcButton
 					class="app-menu__waffle"
@@ -21,7 +22,7 @@
 					:aria-label="t('core', 'Open apps menu')"
 					aria-haspopup="menu"
 					:aria-expanded="opened ? 'true' : 'false'"
-					@click="opened = !opened">
+					@click="onTriggerClick('waffle')">
 					<template #icon>
 						<IconDotsGrid :size="20" />
 					</template>
@@ -51,7 +52,7 @@
 			:aria-label="t('core', 'Open apps menu')"
 			aria-haspopup="menu"
 			:aria-expanded="opened ? 'true' : 'false'"
-			@click="opened = !opened">
+			@click="onTriggerClick('currentApp')">
 			<img
 				class="app-menu__current-app-icon"
 				:src="currentApp.icon"
@@ -107,6 +108,12 @@ export default defineComponent({
 			// every other tile has tabindex=-1. Arrow keys move it; Tab
 			// then takes focus out of the grid as a whole.
 			focusedIndex: 0,
+			// Tracks which trigger opened the popover so we can return
+			// focus to the right one on close. NcPopover's built-in
+			// focus-trap only knows about the slot trigger (the waffle);
+			// the current-app button lives outside the slot, so we
+			// restore focus manually in onPopoverHide.
+			openedFrom: null as 'waffle' | 'currentApp' | null,
 		}
 	},
 
@@ -157,13 +164,46 @@ export default defineComponent({
 		// Pre-seed the roving stop so the initial render already has
 		// tabindex=0 on the right tile, before the popover opens.
 		this.focusedIndex = this.activeGridIndex()
+		// Subscribe to NcPopover's `after-hide` event via $on rather than a
+		// template `@after-hide` listener: the lint rule forbids hyphenated
+		// v-on names in this codebase, but NcPopover v8 emits the event with
+		// the kebab-case name and Vue 2 doesn't auto-normalize, so a
+		// camelCase template listener never fires.
+		;(this.$refs.popover as { $on: (e: string, fn: () => void) => void }).$on('after-hide', this.onPopoverAfterHide)
 	},
 
 	beforeUnmount() {
 		unsubscribe('nextcloud:app-menu.refresh', this.setApps)
+		;(this.$refs.popover as { $off: (e: string, fn: () => void) => void } | undefined)?.$off('after-hide', this.onPopoverAfterHide)
 	},
 
 	methods: {
+		// NcPopover's focus-trap calls this on deactivation to decide where
+		// to restore focus. Without it, NcPopover defaults to its slot
+		// trigger (the waffle), so opening from the current-app button and
+		// closing would jump focus to the wrong trigger. Returning the
+		// element chosen by `openedFrom` keeps the round-trip symmetric.
+		// Default to waffle for any external open path (it's always rendered;
+		// the current-app button only renders when there's an active app).
+		returnFocusTarget(): HTMLElement | null {
+			return this.openedFrom === 'currentApp'
+				? this.$el.querySelector('.app-menu__current-app')
+				: this.$el.querySelector('.app-menu__waffle')
+		},
+
+		// NcPopover emits `after-hide` once the popover has fully closed
+		// (focus-trap already deactivated, content unmounted). Focus return
+		// is handled by `setReturnFocus` above; this hook only clears the
+		// trigger source so the next open starts from a clean state.
+		onPopoverAfterHide() {
+			this.openedFrom = null
+		},
+
+		onTriggerClick(source: 'waffle' | 'currentApp') {
+			this.openedFrom = source
+			this.opened = !this.opened
+		},
+
 		setNavigationCounter(id: string, counter: number) {
 			const app = this.appList.find(({ app }) => app === id)
 			if (app) {
@@ -191,9 +231,10 @@ export default defineComponent({
 		// pattern. Tab is intentionally NOT handled so the browser's native
 		// focus order moves out of the grid.
 		async onGridKeydown(event: KeyboardEvent) {
-			// Let modifier-bearing key combos fall through to the browser
-			// (e.g. Shift+Tab, Ctrl+ArrowRight for word jumps in inputs).
-			if (event.ctrlKey || event.metaKey || event.altKey) {
+			// Let modifier-bearing key combos fall through to the browser.
+			// Shift is included so Shift+Enter opens the link in a new tab
+			// via the browser's native modifier-aware <a> activation.
+			if (event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) {
 				return
 			}
 
@@ -243,12 +284,33 @@ export default defineComponent({
 				case 'End':
 					next = total - 1
 					break
+				case 'Enter':
+				case ' ': {
+					// Activate the focused tile and close the launcher.
+					// Native <a> activation works for Enter but not Space; for
+					// Space the default browser action is to scroll the
+					// nearest scrollable ancestor (the popover itself), so we
+					// must intercept and click programmatically. Doing the
+					// same for Enter keeps the behavior uniform and lets us
+					// close the popover after activation.
+					const items = this.$refs.items as Array<{ $el: HTMLElement }> | undefined
+					items?.[this.focusedIndex]?.$el?.click()
+					this.opened = false
+					event.preventDefault()
+					event.stopPropagation()
+					return
+				}
 				default:
 					// Tab and every other key falls through untouched.
 					return
 			}
 
+			// stopPropagation prevents the keydown from bubbling out of the
+			// teleported popover to document-level listeners (e.g. the Files
+			// app's keyboard shortcuts), which would otherwise navigate the
+			// background view at the same time the launcher grid moves focus.
 			event.preventDefault()
+			event.stopPropagation()
 			if (next !== i) {
 				this.focusedIndex = next
 			}

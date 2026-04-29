@@ -401,4 +401,46 @@ describe('core: AppMenu', () => {
 			expect(event.defaultPrevented).toBe(false)
 		})
 	})
+
+	describe('focus return on close', () => {
+		// Focus restoration in production is driven by NcPopover's focus-trap
+		// reading the `setReturnFocus` callback we pass it. focus-trap doesn't
+		// fully activate in jsdom (it needs layout the test environment doesn't
+		// supply), so asserting on `document.activeElement` would either pass
+		// for the wrong reason or be flaky. Instead we test the actual contract:
+		// the callback returns the right element based on `openedFrom`, and
+		// `openedFrom` is reset on close so the next open starts clean.
+		it('returnFocusTarget points at the waffle when opened from the waffle', async () => {
+			const wrapper = mount(AppMenu, { attachTo: document.body })
+			await wrapper.get('.app-menu__waffle').trigger('click')
+
+			const waffle = wrapper.get('.app-menu__waffle').element
+			// Direct method invocation is the cleanest way to verify the
+			// focus-trap callback contract -- NcPopover will call this on
+			// trap deactivation to decide where to restore focus.
+			expect(wrapper.vm.returnFocusTarget()).toBe(waffle)
+		})
+
+		it('returnFocusTarget points at the current-app button when opened from it', async () => {
+			const wrapper = mount(AppMenu, { attachTo: document.body })
+			await wrapper.get('.app-menu__current-app').trigger('click')
+
+			const currentApp = wrapper.get('.app-menu__current-app').element
+			expect(wrapper.vm.returnFocusTarget()).toBe(currentApp)
+		})
+
+		it('clears openedFrom after the popover finishes closing', async () => {
+			const wrapper = mount(AppMenu, { attachTo: document.body })
+			await wrapper.get('.app-menu__current-app').trigger('click')
+			expect(wrapper.vm.openedFrom).toBe('currentApp')
+
+			// NcPopover emits `after-hide` once the popover has fully closed.
+			// Triggering it directly mirrors what NcPopover does internally
+			// without needing focus-trap or transition timing in jsdom.
+			wrapper.findComponent({ name: 'NcPopover' }).vm.$emit('after-hide')
+			await wrapper.vm.$nextTick()
+
+			expect(wrapper.vm.openedFrom).toBe(null)
+		})
+	})
 })
