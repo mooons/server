@@ -177,26 +177,29 @@ export default defineComponent({
 		color: var(--color-background-plain-text);
 
 		// Mirror the current-app trigger's hover/active/focus feedback so
-		// both popover triggers behave identically. Reach through NcButton's
-		// shadow with :deep(.button-vue). Translucent-black overlays read on
-		// any header tint (--color-background-hover is white-ish and would
-		// collapse contrast on the theme-primary background).
-		:deep(.button-vue) {
-			color: var(--color-background-plain-text);
+		// both popover triggers behave identically.
+		//
+		// `class="app-menu__waffle"` on <NcButton> gets merged onto the
+		// component's root <button> element (same one with `.button-vue`),
+		// so we style it directly — `:deep()` here would compile to a
+		// descendant selector that never matches.
+		//
+		// !important defeats the v8 NcButton CSS in the legacy bundle which
+		// sets `outline` and `box-shadow` on `:focus-visible` with
+		// !important. Same defensive pattern as the current-app trigger's
+		// :active rule.
+		&:hover:not(:disabled) {
+			background-color: rgba(0, 0, 0, 0.1) !important;
+		}
 
-			&:not(:disabled):hover {
-				background-color: rgba(0, 0, 0, 0.1);
-			}
+		&:active:not(:disabled) {
+			background-color: rgba(0, 0, 0, 0.15) !important;
+		}
 
-			&:not(:disabled):active {
-				background-color: rgba(0, 0, 0, 0.15);
-			}
-
-			&:focus-visible {
-				background-color: rgba(0, 0, 0, 0.1);
-				outline: none;
-				box-shadow: inset 0 0 0 2px var(--color-background-plain-text);
-			}
+		&:focus-visible {
+			background-color: rgba(0, 0, 0, 0.1) !important;
+			outline: none !important;
+			box-shadow: inset 0 0 0 2px var(--color-background-plain-text) !important;
 		}
 	}
 
