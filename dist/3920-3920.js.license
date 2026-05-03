@@ -38,7 +38,6 @@ SPDX-FileCopyrightText: Jordan Harband
 SPDX-FileCopyrightText: John Hiesey
 SPDX-FileCopyrightText: James Halliday
 SPDX-FileCopyrightText: Jacob Clevenger<https://github.com/wheatjs>
-SPDX-FileCopyrightText: Isaac Z. Schlueter <i@izs.me> (http://blog.izs.me)
 SPDX-FileCopyrightText: Irakli Gozalishvili <rfobic@gmail.com> (http://jeditoolkit.com)
 SPDX-FileCopyrightText: Guillaume Chau <guillaume.b.chau@gmail.com>
 SPDX-FileCopyrightText: Guillaume Chau
@@ -133,8 +132,11 @@ This file is generated from multiple sources. Included packages:
 	- version: 3.1.0
 	- license: GPL-3.0-or-later
 - @nextcloud/vue
-	- version: 8.37.0
+	- version: 8.38.0
 	- license: AGPL-3.0-or-later
+- @nodable/entities
+	- version: 2.1.0
+	- license: MIT
 - @vue/devtools-api
 	- version: 6.6.4
 	- license: MIT
@@ -163,7 +165,7 @@ This file is generated from multiple sources. Included packages:
 	- version: 1.0.7
 	- license: MIT
 - axios
-	- version: 1.13.4
+	- version: 1.16.0
 	- license: MIT
 - balanced-match
 	- version: 1.0.2
@@ -178,7 +180,7 @@ This file is generated from multiple sources. Included packages:
 	- version: 2.9.0
 	- license: MIT
 - brace-expansion
-	- version: 2.0.2
+	- version: 2.1.0
 	- license: MIT
 - buffer
 	- version: 5.7.1
@@ -211,7 +213,7 @@ This file is generated from multiple sources. Included packages:
 	- version: 1.1.4
 	- license: MIT
 - dompurify
-	- version: 3.4.0
+	- version: 3.4.2
 	- license: (MPL-2.0 OR Apache-2.0)
 - dunder-proto
 	- version: 1.0.1
@@ -231,8 +233,11 @@ This file is generated from multiple sources. Included packages:
 - events
 	- version: 3.3.0
 	- license: MIT
+- fast-xml-builder
+	- version: 1.1.5
+	- license: MIT
 - fast-xml-parser
-	- version: 5.3.4
+	- version: 5.7.2
 	- license: MIT
 - floating-vue
 	- version: 1.0.0-beta.19
@@ -309,9 +314,6 @@ This file is generated from multiple sources. Included packages:
 - md5
 	- version: 2.3.0
 	- license: BSD-3-Clause
-- minimatch
-	- version: 9.0.5
-	- license: ISC
 - nested-property
 	- version: 4.0.0
 	- license: MIT
@@ -320,6 +322,9 @@ This file is generated from multiple sources. Included packages:
 	- license: MIT
 - object-inspect
 	- version: 1.13.4
+	- license: MIT
+- path-expression-matcher
+	- version: 1.5.0
 	- license: MIT
 - path-posix
 	- version: 1.0.0
@@ -337,7 +342,7 @@ This file is generated from multiple sources. Included packages:
 	- version: 1.4.1
 	- license: MIT
 - qs
-	- version: 6.14.1
+	- version: 6.14.2
 	- license: BSD-3-Clause
 - querystringify
 	- version: 2.2.0
@@ -400,10 +405,7 @@ This file is generated from multiple sources. Included packages:
 	- version: 6.0.0
 	- license: MIT
 - unist-util-visit-parents
-	- version: 6.0.1
-	- license: MIT
-- unist-util-visit
-	- version: 5.1.0
+	- version: 6.0.2
 	- license: MIT
 - url-join
 	- version: 5.0.0

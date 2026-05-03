@@ -25,7 +25,6 @@ SPDX-FileCopyrightText: defunctzombie
 SPDX-FileCopyrightText: debounce developers
 SPDX-FileCopyrightText: atomiks
 SPDX-FileCopyrightText: Yehuda Katz
-SPDX-FileCopyrightText: Victor Felder <victor@draft.li> (https://draft.li)
 SPDX-FileCopyrightText: Varun A P
 SPDX-FileCopyrightText: Tobias Koppers @sokra
 SPDX-FileCopyrightText: Titus Wormer <tituswormer@gmail.com> (https://wooorm.com)
@@ -64,7 +63,6 @@ SPDX-FileCopyrightText: James Halliday
 SPDX-FileCopyrightText: Jacob Clevenger<https://github.com/wheatjs>
 SPDX-FileCopyrightText: Iskren Ivov Chernev <iskren.chernev@gmail.com> (https://github.com/ichernev)
 SPDX-FileCopyrightText: Isaac Z. Schlueter <i@izs.me> (http://blog.izs.me/)
-SPDX-FileCopyrightText: Isaac Z. Schlueter <i@izs.me> (http://blog.izs.me)
 SPDX-FileCopyrightText: Irakli Gozalishvili <rfobic@gmail.com> (http://jeditoolkit.com)
 SPDX-FileCopyrightText: Hiroki Osame
 SPDX-FileCopyrightText: Guillaume Chau <guillaume.b.chau@gmail.com>
@@ -276,8 +274,11 @@ This file is generated from multiple sources. Included packages:
 	- version: 2.2.0
 	- license: GPL-3.0-or-later
 - @nextcloud/vue
-	- version: 8.37.0
+	- version: 8.38.0
 	- license: AGPL-3.0-or-later
+- @nodable/entities
+	- version: 2.1.0
+	- license: MIT
 - @ungap/structured-clone
 	- version: 1.3.0
 	- license: ISC
@@ -312,7 +313,7 @@ This file is generated from multiple sources. Included packages:
 	- version: 4.5.0
 	- license: Apache-2.0
 - axios
-	- version: 1.13.4
+	- version: 1.16.0
 	- license: MIT
 - balanced-match
 	- version: 1.0.2
@@ -330,7 +331,7 @@ This file is generated from multiple sources. Included packages:
 	- version: 2.0.5
 	- license: MIT
 - brace-expansion
-	- version: 2.0.2
+	- version: 2.1.0
 	- license: MIT
 - buffer
 	- version: 5.7.1
@@ -387,7 +388,7 @@ This file is generated from multiple sources. Included packages:
 	- version: 1.1.0
 	- license: MIT
 - dompurify
-	- version: 3.4.0
+	- version: 3.4.2
 	- license: (MPL-2.0 OR Apache-2.0)
 - dunder-proto
 	- version: 1.0.1
@@ -413,8 +414,11 @@ This file is generated from multiple sources. Included packages:
 - extend
 	- version: 3.0.2
 	- license: MIT
+- fast-xml-builder
+	- version: 1.1.5
+	- license: MIT
 - fast-xml-parser
-	- version: 5.3.4
+	- version: 5.7.2
 	- license: MIT
 - filter-obj
 	- version: 5.1.0
@@ -441,7 +445,7 @@ This file is generated from multiple sources. Included packages:
 	- version: 1.2.0
 	- license: MIT
 - handlebars
-	- version: 4.7.8
+	- version: 4.7.9
 	- license: MIT
 - has-property-descriptors
 	- version: 1.0.2
@@ -518,9 +522,6 @@ This file is generated from multiple sources. Included packages:
 - lodash
 	- version: 4.18.1
 	- license: MIT
-- longest-streak
-	- version: 3.1.0
-	- license: MIT
 - marked
 	- version: 16.4.2
 	- license: MIT
@@ -545,14 +546,8 @@ This file is generated from multiple sources. Included packages:
 - mdast-util-newline-to-break
 	- version: 2.0.0
 	- license: MIT
-- mdast-util-phrasing
-	- version: 4.1.0
-	- license: MIT
 - mdast-util-to-hast
 	- version: 13.2.1
-	- license: MIT
-- mdast-util-to-markdown
-	- version: 2.1.2
 	- license: MIT
 - mdast-util-to-string
 	- version: 4.0.0
@@ -614,9 +609,6 @@ This file is generated from multiple sources. Included packages:
 - micromark
 	- version: 4.0.2
 	- license: MIT
-- minimatch
-	- version: 9.0.5
-	- license: ISC
 - moment
 	- version: 2.30.1
 	- license: MIT
@@ -637,6 +629,9 @@ This file is generated from multiple sources. Included packages:
 	- license: MIT
 - p-queue
 	- version: 8.1.1
+	- license: MIT
+- path-expression-matcher
+	- version: 1.5.0
 	- license: MIT
 - path-posix
 	- version: 1.0.0
@@ -666,7 +661,7 @@ This file is generated from multiple sources. Included packages:
 	- version: 1.4.1
 	- license: MIT
 - qs
-	- version: 6.14.1
+	- version: 6.14.2
 	- license: BSD-3-Clause
 - query-string
 	- version: 9.3.1
@@ -688,9 +683,6 @@ This file is generated from multiple sources. Included packages:
 	- license: MIT
 - remark-rehype
 	- version: 11.1.2
-	- license: MIT
-- remark-stringify
-	- version: 11.0.0
 	- license: MIT
 - remark-unlink-protocols
 	- version: 1.0.0
@@ -786,7 +778,7 @@ This file is generated from multiple sources. Included packages:
 	- version: 4.0.0
 	- license: MIT
 - unist-util-visit-parents
-	- version: 6.0.1
+	- version: 6.0.2
 	- license: MIT
 - unist-util-visit
 	- version: 5.1.0
@@ -847,7 +839,4 @@ This file is generated from multiple sources. Included packages:
 	- license: MIT
 - xtend
 	- version: 4.0.2
-	- license: MIT
-- zwitch
-	- version: 2.0.4
 	- license: MIT
