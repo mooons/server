@@ -429,10 +429,11 @@ describe('core: AppMenu', () => {
 			expect(wrapper.vm.returnFocusTarget()).toBe(currentApp)
 		})
 
-		it('clears openedFrom after the popover finishes closing', async () => {
+		it('returnFocusTarget falls back to the waffle after the popover finishes closing', async () => {
 			const wrapper = mount(AppMenu, { attachTo: document.body })
 			await wrapper.get('.app-menu__current-app').trigger('click')
-			expect(wrapper.vm.openedFrom).toBe('currentApp')
+			const currentApp = wrapper.get('.app-menu__current-app').element
+			expect(wrapper.vm.returnFocusTarget()).toBe(currentApp)
 
 			// NcPopover emits `after-hide` once the popover has fully closed.
 			// Triggering it directly mirrors what NcPopover does internally
@@ -440,7 +441,10 @@ describe('core: AppMenu', () => {
 			wrapper.findComponent({ name: 'NcPopover' }).vm.$emit('after-hide')
 			await wrapper.vm.$nextTick()
 
-			expect(wrapper.vm.openedFrom).toBe(null)
+			// After close, the next open should start clean: returnFocusTarget
+			// reverts to the waffle (the default for any non-currentApp open).
+			const waffle = wrapper.get('.app-menu__waffle').element
+			expect(wrapper.vm.returnFocusTarget()).toBe(waffle)
 		})
 	})
 })

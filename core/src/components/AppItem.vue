@@ -75,7 +75,7 @@ const unreadLabel = computed(() => {
 
 <style scoped lang="scss">
 .app-item {
-	--app-item-circle-size: 40px;
+	--app-item-circle-size: calc(var(--default-grid-baseline) * 10);
 	--app-item-icon-size: 22px;
 
 	display: flex;
@@ -140,8 +140,8 @@ const unreadLabel = computed(() => {
 		position: absolute;
 		top: 0;
 		inset-inline-end: 0;
-		width: 12px;
-		height: 12px;
+		width: calc(var(--default-grid-baseline) * 3);
+		height: calc(var(--default-grid-baseline) * 3);
 		border-radius: 50%;
 		background-color: var(--color-error);
 		border: 2px solid var(--color-main-background);

@@ -115,6 +115,27 @@ export default defineComponent({
 			// the current-app button lives outside the slot, so we
 			// restore focus manually in onPopoverHide.
 			openedFrom: null as 'waffle' | 'currentApp' | null,
+			// Synthetic tile that takes admins to the app store. Not part
+			// of `appList` because it isn't a registered nav entry.
+			moreAppsEntry: {
+				id: 'more-apps',
+				active: false,
+				order: Number.MAX_SAFE_INTEGER,
+				href: generateUrl('/settings/apps'),
+				icon: generateFilePath('settings', 'img', 'apps.svg'),
+				type: 'link',
+				name: t('core', 'More apps'),
+				unread: 0,
+			} as INavigationEntry,
+			// Cross-axis offset for the popover. Floating UI's skidding sign
+			// stays consistent regardless of writing direction (positive
+			// shifts toward the main-axis-end), so the LTR value -82 (which
+			// tucks the popover under the logo on the start side) must be
+			// mirrored to +82 under RTL. `placement: bottom-start` on its own
+			// already swaps the anchor edge, but the skidding offset isn't
+			// auto-mirrored. Snapshot at init: Nextcloud's language can't
+			// change at runtime, so a single read is correct.
+			popoverSkidding: isRTL() ? 82 : -82,
 		}
 	},
 
@@ -129,37 +150,11 @@ export default defineComponent({
 			return this.currentApp?.id !== 'dashboard'
 		},
 
-		moreAppsEntry(): INavigationEntry {
-			return {
-				id: 'more-apps',
-				active: false,
-				order: Number.MAX_SAFE_INTEGER,
-				href: generateUrl('/settings/apps'),
-				icon: generateFilePath('settings', 'img', 'apps.svg'),
-				type: 'link',
-				name: t('core', 'More apps'),
-				unread: 0,
-			}
-		},
-
 		// Single ordered list of every tile rendered in the grid. The roving
 		// `focusedIndex` is an index into this list, so keep ordering stable
 		// and include the optional "More apps" tile when admin.
 		gridItems(): INavigationEntry[] {
 			return this.isAdmin ? [...this.appList, this.moreAppsEntry] : [...this.appList]
-		},
-
-		// Cross-axis offset for the popover. Floating UI's skidding sign stays
-		// consistent regardless of writing direction (positive shifts toward
-		// the main-axis-end), so the LTR value `-82` (which tucks the popover
-		// under the logo on the start side) must be mirrored to `+82` under
-		// RTL. `placement: bottom-start` on its own already swaps the anchor
-		// edge, but the skidding offset isn't auto-mirrored. Without this
-		// flip the popover slides further off the trigger's end side in RTL.
-		// `isRTL()` is a module-init snapshot, not reactive. The language can't
-		// change at runtime in Nextcloud, so the once-computed value is correct.
-		popoverSkidding(): number {
-			return isRTL() ? 82 : -82
 		},
 	},
 
@@ -344,12 +339,6 @@ export default defineComponent({
 	display: flex;
 	align-items: center;
 
-	&__triggers {
-		display: flex;
-		align-items: center;
-		gap: var(--default-grid-baseline);
-	}
-
 	&__waffle {
 		// NcButton's tertiary-no-background variant uses --color-main-text,
 		// which is dark on light themes. The header sits on the theme primary
@@ -427,8 +416,8 @@ export default defineComponent({
 	}
 
 	&__current-app-icon {
-		width: 20px;
-		height: 20px;
+		width: calc(var(--default-grid-baseline) * 5);
+		height: calc(var(--default-grid-baseline) * 5);
 		// Match the old AppMenuIcon: theme-aware inversion plus a vertical
 		// alpha gradient (defined in theming as --header-menu-icon-mask)
 		// to give the icon a subtle fade toward the bottom.

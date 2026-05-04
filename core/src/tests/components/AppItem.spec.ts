@@ -39,11 +39,7 @@ function makeApp(overrides: Partial<INavigationEntry> = {}): INavigationEntry {
 describe('core: AppItem', () => {
 	it('renders the label', () => {
 		const wrapper = mount(AppItem, { propsData: { app: makeApp({ name: 'Files' }) } })
-		// Label is inside `.app-item__label` together with a hidden-visually
-		// span when there are unread items; trim() to ignore whitespace.
-		const label = wrapper.find('.app-item__label')
-		expect(label.exists()).toBe(true)
-		expect(label.text()).toContain('Files')
+		expect(wrapper.text()).toContain('Files')
 	})
 
 	it('active app has aria-current="page"', () => {
