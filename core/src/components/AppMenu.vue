@@ -14,6 +14,7 @@
 			:skidding="popoverSkidding"
 			:setReturnFocus="returnFocusTarget"
 			popoverBaseClass="app-menu__popover-base"
+			popupRole="menu"
 			@update:shown="opened = $event">
 			<template #trigger>
 				<NcButton
