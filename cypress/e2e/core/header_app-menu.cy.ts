@@ -7,9 +7,9 @@ import { User } from '@nextcloud/e2e-test-server/cypress'
 import { clearState, getNextcloudHeader } from '../../support/commonUtils.ts'
 
 const getAppMenu = () => getNextcloudHeader().find('.app-menu')
-// Both triggers share aria-label="Open apps menu", so we can't disambiguate
-// with getByRole alone. BEM classes owned by the component under test are
-// acceptable here per the pre-flight notes.
+// Both triggers share aria-label="Open apps menu", so getByRole can't
+// disambiguate them. BEM classes owned by the component under test are
+// the next-best stable selectors.
 const getWaffleTrigger = () => getAppMenu().find('.app-menu__waffle')
 const getCurrentAppTrigger = () => getAppMenu().find('.app-menu__current-app')
 
