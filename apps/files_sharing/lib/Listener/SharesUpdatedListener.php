@@ -59,6 +59,7 @@ class SharesUpdatedListener implements IEventListener {
 		$this->cutOffMarkTime = $appConfig->getValueFloat(Application::APP_ID, ConfigLexicon::UPDATE_CUTOFF_TIME, 3.0);
 	}
 
+	#[\Override]
 	public function handle(Event $event): void {
 		// don't trigger the on-setup checks if this handler triggers an fs setup
 		$oldState = $this->homeSetupListener->setDisabled(true);
@@ -91,7 +92,7 @@ class SharesUpdatedListener implements IEventListener {
 				}
 
 				if ($share->getSharedBy() !== $user->getUID()) {
-					$this->markOrRun($user, function () use ($user, $share) {
+					$this->markOrRun($user, function () use ($user, $share): void {
 						$this->shareUpdater->updateForAddedShare($user, $share);
 					});
 					// Share target validation might have changed the target, restore it for the next user
@@ -105,7 +106,7 @@ class SharesUpdatedListener implements IEventListener {
 
 			// don't trigger if the share is moved as part of the conflict resolution
 			if (!$this->shareUpdater->isInUpdate($user)) {
-				$this->markOrRun($user, function () use ($user, $share) {
+				$this->markOrRun($user, function () use ($user, $share): void {
 					$this->shareUpdater->updateForMovedShare($user, $share);
 				});
 			}
@@ -117,7 +118,7 @@ class SharesUpdatedListener implements IEventListener {
 					continue;
 				}
 
-				$this->markOrRun($user, function () use ($user, $share) {
+				$this->markOrRun($user, function () use ($user, $share): void {
 					$this->shareUpdater->updateForDeletedShare($user, $share);
 				});
 			}
@@ -138,7 +139,7 @@ class SharesUpdatedListener implements IEventListener {
 	}
 
 	private function updateOrMarkUser(IUser $user): void {
-		$this->markOrRun($user, function () use ($user) {
+		$this->markOrRun($user, function () use ($user): void {
 			$this->shareUpdater->updateForUser($user);
 		});
 	}

@@ -9,6 +9,7 @@ namespace OC\Files\ObjectStore;
 use Aws\Command;
 use Aws\Exception\AwsException;
 use Aws\Exception\MultipartUploadException;
+use Aws\S3\Exception\S3Exception;
 use Aws\S3\Exception\S3MultipartUploadException;
 use Aws\S3\MultipartCopy;
 use Aws\S3\MultipartUploader;
@@ -163,7 +164,7 @@ trait S3ObjectTrait {
 					$totalWritten += $command['ContentLength'];
 				},
 				'before_complete' => function ($_command) use (&$totalWritten, $size, &$uploader, &$attempts): void {
-					if ($size !== null && $totalWritten != $size) {
+					if ($size !== null && $totalWritten !== $size) {
 						$e = new \Exception('Incomplete multi part upload, expected ' . $size . ' bytes, wrote ' . $totalWritten);
 						throw new MultipartUploadException($uploader->getState(), $e);
 					}
@@ -267,8 +268,11 @@ trait S3ObjectTrait {
 		]);
 	}
 
+	/**
+	 * @throws S3Exception|\Exception if there is an unhandled exception
+	 */
 	public function objectExists($urn) {
-		return $this->getConnection()->doesObjectExist($this->bucket, $urn, $this->getServerSideEncryptionParameters());
+		return $this->getConnection()->doesObjectExistV2($this->bucket, $urn, false, $this->getServerSideEncryptionParameters());
 	}
 
 	public function copyObject($from, $to, array $options = []) {

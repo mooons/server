@@ -258,6 +258,7 @@ class DIContainer extends SimpleContainer implements IAppContainer {
 		$this->registerAlias(IInitialState::class, InitialState::class);
 	}
 
+	#[\Override]
 	public function getServer(): ServerContainer {
 		return $this->server;
 	}
@@ -265,6 +266,7 @@ class DIContainer extends SimpleContainer implements IAppContainer {
 	/**
 	 * @param string $middleWare
 	 */
+	#[\Override]
 	public function registerMiddleWare($middleWare): bool {
 		if (in_array($middleWare, $this->middleWares, true) !== false) {
 			return false;
@@ -277,6 +279,7 @@ class DIContainer extends SimpleContainer implements IAppContainer {
 	 * used to return the appname of the set application
 	 * @return string the name of your application
 	 */
+	#[\Override]
 	public function getAppName() {
 		return $this->query('appName');
 	}
@@ -307,12 +310,14 @@ class DIContainer extends SimpleContainer implements IAppContainer {
 	 *
 	 * @param string $serviceName e.g. 'OCA\Files\Capabilities'
 	 */
+	#[\Override]
 	public function registerCapability($serviceName) {
 		$this->query(CapabilitiesManager::class)->registerCapability(function () use ($serviceName) {
 			return $this->query($serviceName);
 		});
 	}
 
+	#[\Override]
 	public function has($id): bool {
 		if (parent::has($id)) {
 			return true;
@@ -329,6 +334,7 @@ class DIContainer extends SimpleContainer implements IAppContainer {
 	 * @inheritDoc
 	 * @param list<class-string> $chain
 	 */
+	#[\Override]
 	public function query(string $name, bool $autoload = true, array $chain = []): mixed {
 		if ($name === 'AppName' || $name === 'appName') {
 			return $this->appName;
