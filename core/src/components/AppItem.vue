@@ -38,8 +38,8 @@
 <script setup lang="ts">
 import type { INavigationEntry } from '../types/navigation.d.ts'
 
-import { computed } from 'vue'
 import { n } from '@nextcloud/l10n'
+import { computed } from 'vue'
 
 const props = withDefaults(defineProps<{
 	app: INavigationEntry

@@ -16,10 +16,10 @@ const initialState = vi.hoisted(() => ({
 }))
 vi.mock('@nextcloud/initial-state', () => initialState)
 
-const adminMod = vi.hoisted(() => ({
-	isUserAdmin: vi.fn(() => false),
+const auth = vi.hoisted(() => ({
+	getCurrentUser: vi.fn(() => ({ isAdmin: false })),
 }))
-vi.mock('../../OC/admin.js', () => adminMod)
+vi.mock('@nextcloud/auth', () => auth)
 
 const eventBus = vi.hoisted(() => {
 	const handlers: Record<string, Array<(payload: unknown) => void>> = {}
@@ -95,7 +95,7 @@ beforeEach(async () => {
 		delete eventBus.__handlers[k]
 	}
 	initialState.loadState.mockImplementation((_app: string, key: string, fallback: unknown) => key === 'apps' ? fakeApps() : fallback)
-	adminMod.isUserAdmin.mockReturnValue(false)
+	auth.getCurrentUser.mockReturnValue({ isAdmin: false })
 	AppMenu = (await import('../../components/AppMenu.vue')).default
 })
 
@@ -139,8 +139,8 @@ describe('core: AppMenu', () => {
 		expect(labels).toEqual(['Files', 'Mail', 'Calendar'])
 	})
 
-	it('renders the "More apps" tile when isUserAdmin() returns true', async () => {
-		adminMod.isUserAdmin.mockReturnValue(true)
+	it('renders the "More apps" tile when the current user is an admin', async () => {
+		auth.getCurrentUser.mockReturnValue({ isAdmin: true })
 		const wrapper = mount(AppMenu, { attachTo: document.body })
 		await openPopover(wrapper)
 
@@ -152,8 +152,8 @@ describe('core: AppMenu', () => {
 		expect(moreApps).toBeTruthy()
 	})
 
-	it('does NOT render "More apps" when isUserAdmin() returns false', async () => {
-		adminMod.isUserAdmin.mockReturnValue(false)
+	it('does NOT render "More apps" when the current user is not an admin', async () => {
+		auth.getCurrentUser.mockReturnValue({ isAdmin: false })
 		const wrapper = mount(AppMenu, { attachTo: document.body })
 		await openPopover(wrapper)
 

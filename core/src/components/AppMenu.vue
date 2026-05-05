@@ -69,6 +69,7 @@
 <script lang="ts">
 import type { INavigationEntry } from '../types/navigation.d.ts'
 
+import { getCurrentUser } from '@nextcloud/auth'
 import { subscribe, unsubscribe } from '@nextcloud/event-bus'
 import { loadState } from '@nextcloud/initial-state'
 import { isRTL, n, t } from '@nextcloud/l10n'
@@ -78,7 +79,6 @@ import NcButton from '@nextcloud/vue/components/NcButton'
 import NcPopover from '@nextcloud/vue/components/NcPopover'
 import IconDotsGrid from 'vue-material-design-icons/DotsGrid.vue'
 import AppItem from './AppItem.vue'
-import { isUserAdmin } from '../OC/admin.js'
 import logger from '../logger.js'
 
 export default defineComponent({
@@ -104,7 +104,7 @@ export default defineComponent({
 		const appList = loadState<INavigationEntry[]>('core', 'apps', [])
 		return {
 			appList,
-			isAdmin: isUserAdmin(),
+			isAdmin: getCurrentUser()?.isAdmin ?? false,
 			// Roving tabindex: only the tile at this index has tabindex=0,
 			// every other tile has tabindex=-1. Arrow keys move it; Tab
 			// then takes focus out of the grid as a whole.
@@ -127,6 +127,7 @@ export default defineComponent({
 				name: t('core', 'More apps'),
 				unread: 0,
 			} as INavigationEntry,
+
 			// Cross-axis offset for the popover. Floating UI's skidding sign
 			// stays consistent regardless of writing direction (positive
 			// shifts toward the main-axis-end), so the LTR value -82 (which
