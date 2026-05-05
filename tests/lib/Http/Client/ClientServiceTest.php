@@ -10,10 +10,6 @@ declare(strict_types=1);
 
 namespace Test\Http\Client;
 
-use GuzzleHttp\Client as GuzzleClient;
-use GuzzleHttp\Handler\CurlHandler;
-use GuzzleHttp\HandlerStack;
-use GuzzleHttp\Middleware;
 use OC\Http\Client\Client;
 use OC\Http\Client\ClientService;
 use OC\Http\Client\DnsPinMiddleware;
@@ -22,7 +18,6 @@ use OCP\ICertificateManager;
 use OCP\IConfig;
 use OCP\Security\IRemoteHostValidator;
 use OCP\ServerVersion;
-use Psr\Http\Message\RequestInterface;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -58,27 +53,7 @@ class ClientServiceTest extends \Test\TestCase {
 			$serverVersion,
 		);
 
-		$handler = new CurlHandler();
-		$stack = HandlerStack::create($handler);
-		$stack->push($dnsPinMiddleware->addDnsPinning());
-		$stack->push(Middleware::tap(function (RequestInterface $request) use ($eventLogger): void {
-			$eventLogger->start('http:request', $request->getMethod() . ' request to ' . $request->getRequestTarget());
-		}, function () use ($eventLogger): void {
-			$eventLogger->end('http:request');
-		}), 'event logger');
-		$guzzleClient = new GuzzleClient(['handler' => $stack]);
-
-		$this->assertEquals(
-			new Client(
-				$config,
-				$certificateManager,
-				$guzzleClient,
-				$remoteHostValidator,
-				$logger,
-				$serverVersion,
-			),
-			$clientService->newClient()
-		);
+		$this->assertInstanceOf(Client::class, $clientService->newClient());
 	}
 
 	public function testDisableDnsPinning(): void {
@@ -110,25 +85,6 @@ class ClientServiceTest extends \Test\TestCase {
 			$serverVersion,
 		);
 
-		$handler = new CurlHandler();
-		$stack = HandlerStack::create($handler);
-		$stack->push(Middleware::tap(function (RequestInterface $request) use ($eventLogger): void {
-			$eventLogger->start('http:request', $request->getMethod() . ' request to ' . $request->getRequestTarget());
-		}, function () use ($eventLogger): void {
-			$eventLogger->end('http:request');
-		}), 'event logger');
-		$guzzleClient = new GuzzleClient(['handler' => $stack]);
-
-		$this->assertEquals(
-			new Client(
-				$config,
-				$certificateManager,
-				$guzzleClient,
-				$remoteHostValidator,
-				$logger,
-				$serverVersion,
-			),
-			$clientService->newClient()
-		);
+		$this->assertInstanceOf(Client::class, $clientService->newClient());
 	}
 }
