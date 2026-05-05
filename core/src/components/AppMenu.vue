@@ -105,18 +105,13 @@ export default defineComponent({
 		return {
 			appList,
 			isAdmin: getCurrentUser()?.isAdmin ?? false,
-			// Roving tabindex: only the tile at this index has tabindex=0,
-			// every other tile has tabindex=-1. Arrow keys move it; Tab
-			// then takes focus out of the grid as a whole.
+			// Roving tabindex: only this tile has tabindex=0; arrow keys move it.
 			focusedIndex: 0,
-			// Tracks which trigger opened the popover so we can return
-			// focus to the right one on close. NcPopover's built-in
-			// focus-trap only knows about the slot trigger (the waffle);
-			// the current-app button lives outside the slot, so we
-			// restore focus manually in onPopoverHide.
+			// NcPopover's focus-trap only knows the slot trigger (waffle).
+			// The current-app button lives outside the slot, so we track the
+			// source and restore focus manually via setReturnFocus.
 			openedFrom: null as 'waffle' | 'currentApp' | null,
-			// Synthetic tile that takes admins to the app store. Not part
-			// of `appList` because it isn't a registered nav entry.
+			// Synthetic admin-only tile linking to the app store; not a real nav entry.
 			moreAppsEntry: {
 				id: 'more-apps',
 				active: false,
@@ -128,14 +123,9 @@ export default defineComponent({
 				unread: 0,
 			} as INavigationEntry,
 
-			// Cross-axis offset for the popover. Floating UI's skidding sign
-			// stays consistent regardless of writing direction (positive
-			// shifts toward the main-axis-end), so the LTR value -82 (which
-			// tucks the popover under the logo on the start side) must be
-			// mirrored to +82 under RTL. `placement: bottom-start` on its own
-			// already swaps the anchor edge, but the skidding offset isn't
-			// auto-mirrored. Snapshot at init: Nextcloud's language can't
-			// change at runtime, so a single read is correct.
+			// `placement: bottom-start` swaps the anchor edge under RTL but the
+			// skidding sign isn't auto-mirrored, so we flip it here. Snapshot
+			// at init: Nextcloud's language doesn't change at runtime.
 			popoverSkidding: isRTL() ? 82 : -82,
 		}
 	},
@@ -145,23 +135,18 @@ export default defineComponent({
 			return this.appList.find((app) => app.active)
 		},
 
-		// Open links in the same tab when launching from Dashboard, new tab
-		// otherwise. Mirrors Google's behavior and the design decision in #59888.
 		openInNewTab(): boolean {
 			return this.currentApp?.id !== 'dashboard'
 		},
 
-		// Single ordered list of every tile rendered in the grid. The roving
-		// `focusedIndex` is an index into this list, so keep ordering stable
-		// and include the optional "More apps" tile when admin.
+		// Stable-ordered list that focusedIndex indexes into; adds "More apps" for admins.
 		gridItems(): INavigationEntry[] {
 			return this.isAdmin ? [...this.appList, this.moreAppsEntry] : [...this.appList]
 		},
 	},
 
 	watch: {
-		// On open, place the roving stop on the active app (if any) so a
-		// keyboard user lands on "you are here" rather than the first tile.
+		// On open, land the roving stop on the active app rather than index 0.
 		opened(isOpen: boolean) {
 			if (isOpen) {
 				this.focusedIndex = this.activeGridIndex()
@@ -171,14 +156,11 @@ export default defineComponent({
 
 	mounted() {
 		subscribe('nextcloud:app-menu.refresh', this.setApps)
-		// Pre-seed the roving stop so the initial render already has
-		// tabindex=0 on the right tile, before the popover opens.
+		// Pre-seed so the correct tile has tabindex=0 before first open.
 		this.focusedIndex = this.activeGridIndex()
-		// Subscribe to NcPopover's `after-hide` event via $on rather than a
-		// template `@after-hide` listener: the lint rule forbids hyphenated
-		// v-on names in this codebase, but NcPopover v8 emits the event with
-		// the kebab-case name and Vue 2 doesn't auto-normalize, so a
-		// camelCase template listener never fires.
+		// Use $on instead of a template listener: the codebase lint rule forbids
+		// hyphenated v-on names, and Vue 2 doesn't normalize kebab-case to
+		// camelCase, so @afterHide on a NcPopover v8 event never fires.
 		;(this.$refs.popover as { $on: (e: string, fn: () => void) => void }).$on('after-hide', this.onPopoverAfterHide)
 	},
 
@@ -188,23 +170,16 @@ export default defineComponent({
 	},
 
 	methods: {
-		// NcPopover's focus-trap calls this on deactivation to decide where
-		// to restore focus. Without it, NcPopover defaults to its slot
-		// trigger (the waffle), so opening from the current-app button and
-		// closing would jump focus to the wrong trigger. Returning the
-		// element chosen by `openedFrom` keeps the round-trip symmetric.
-		// Default to waffle for any external open path (it's always rendered;
-		// the current-app button only renders when there's an active app).
+		// focus-trap calls this on deactivation. NcPopover defaults to the
+		// slot trigger (waffle); we override so current-app opens return
+		// there instead. Waffle is the fallback since current-app only
+		// renders when an app is active.
 		returnFocusTarget(): HTMLElement | null {
 			return this.openedFrom === 'currentApp'
 				? this.$el.querySelector('.app-menu__current-app')
 				: this.$el.querySelector('.app-menu__waffle')
 		},
 
-		// NcPopover emits `after-hide` once the popover has fully closed
-		// (focus-trap already deactivated, content unmounted). Focus return
-		// is handled by `setReturnFocus` above; this hook only clears the
-		// trigger source so the next open starts from a clean state.
 		onPopoverAfterHide() {
 			this.openedFrom = null
 		},
@@ -259,8 +234,7 @@ export default defineComponent({
 
 			switch (event.key) {
 				case 'ArrowRight': {
-					// Stay put if already at the right edge of the row OR the
-					// last item; never wrap to the next row.
+					// Clamp at the row's right edge; never wrap to the next row.
 					const atRowEnd = (i % cols) === cols - 1
 					if (!atRowEnd && i + 1 < total) {
 						next = i + 1
@@ -275,8 +249,6 @@ export default defineComponent({
 					break
 				}
 				case 'ArrowDown': {
-					// Strict edge-clamp: if the cell directly below doesn't
-					// exist (partial bottom row), stay put.
 					if (i + cols < total) {
 						next = i + cols
 					}
@@ -296,13 +268,9 @@ export default defineComponent({
 					break
 				case 'Enter':
 				case ' ': {
-					// Activate the focused tile and close the launcher.
-					// Native <a> activation works for Enter but not Space; for
-					// Space the default browser action is to scroll the
-					// nearest scrollable ancestor (the popover itself), so we
-					// must intercept and click programmatically. Doing the
-					// same for Enter keeps the behavior uniform and lets us
-					// close the popover after activation.
+					// Space's default scrolls the nearest scrollable ancestor (the
+					// popover); intercept and click programmatically. Enter gets
+					// the same treatment so we can close the popover uniformly.
 					const items = this.$refs.items as Array<{ $el: HTMLElement }> | undefined
 					items?.[this.focusedIndex]?.$el?.click()
 					this.opened = false
@@ -315,18 +283,14 @@ export default defineComponent({
 					return
 			}
 
-			// stopPropagation prevents the keydown from bubbling out of the
-			// teleported popover to document-level listeners (e.g. the Files
-			// app's keyboard shortcuts), which would otherwise navigate the
-			// background view at the same time the launcher grid moves focus.
+			// Stop bubbling to document-level handlers (e.g. the Files app's
+			// keyboard shortcuts) that would also act on arrow keys.
 			event.preventDefault()
 			event.stopPropagation()
 			if (next !== i) {
 				this.focusedIndex = next
 			}
 
-			// Wait for the tabindex update to land before moving focus, so
-			// the destination tile is in a coherent state when we focus it.
 			await this.$nextTick()
 			const items = this.$refs.items as Array<{ $el: HTMLElement }> | undefined
 			items?.[this.focusedIndex]?.$el?.focus()
@@ -347,18 +311,9 @@ export default defineComponent({
 		--color-main-text: var(--color-background-plain-text);
 		color: var(--color-background-plain-text);
 
-		// Mirror the current-app trigger's hover/active/focus feedback so
-		// both popover triggers behave identically.
-		//
-		// `class="app-menu__waffle"` on <NcButton> gets merged onto the
-		// component's root <button> element (same one with `.button-vue`),
-		// so we style it directly — `:deep()` here would compile to a
-		// descendant selector that never matches.
-		//
-		// !important defeats the v8 NcButton CSS in the legacy bundle which
-		// sets `outline` and `box-shadow` on `:focus-visible` with
-		// !important. Same defensive pattern as the current-app trigger's
-		// :active rule.
+		// Class merges onto NcButton's root <button>; style directly, no :deep().
+		// !important: v8 NcButton's legacy bundle sets focus-visible
+		// outline/box-shadow with !important, same as the current-app :active rule.
 		&:hover:not(:disabled) {
 			background-color: rgba(0, 0, 0, 0.1) !important;
 		}
@@ -395,20 +350,14 @@ export default defineComponent({
 			background: rgba(0, 0, 0, 0.1);
 		}
 
-		// Override the global rule at core/css/inputs.scss:89 which sets
-		// `button:not(:disabled, .primary):not(.app-navigation-entry-button):active`
-		// to `background-color: var(--color-main-background)` — white on light
-		// themes, which makes the masked icon read as white-on-white. !important
-		// is needed because the global rule lives inside a deeply-chained
-		// :not() selector that's hard to out-specify cleanly.
+		// core/css/inputs.scss:89 sets :active background to --color-main-background
+		// (white on light themes), which makes the masked icon read as white-on-white.
+		// !important: the global rule's :not() chain is hard to out-specify.
 		&:active {
 			background-color: rgba(0, 0, 0, 0.15) !important;
 			color: var(--color-background-plain-text) !important;
 		}
 
-		// Inset box-shadow instead of an outline keeps the focus indicator
-		// inside the rounded rectangle and reads softer than the previous
-		// 2 px primary-color outline (which Jan flagged as a "white flash").
 		&:focus-visible {
 			background: rgba(0, 0, 0, 0.1);
 			outline: none;
@@ -419,9 +368,7 @@ export default defineComponent({
 	&__current-app-icon {
 		width: calc(var(--default-grid-baseline) * 5);
 		height: calc(var(--default-grid-baseline) * 5);
-		// Match the old AppMenuIcon: theme-aware inversion plus a vertical
-		// alpha gradient (defined in theming as --header-menu-icon-mask)
-		// to give the icon a subtle fade toward the bottom.
+		// Theme-aware inversion + vertical alpha fade via --header-menu-icon-mask.
 		filter: var(--background-image-invert-if-bright);
 		mask: var(--header-menu-icon-mask);
 	}
@@ -449,40 +396,30 @@ export default defineComponent({
 		max-height: calc(var(--app-item-row-height) * var(--app-menu-rows-visible) + var(--default-grid-baseline) * 5);
 		overflow-y: auto;
 
-		// Firefox understands the standard scrollbar properties directly here.
-		// The WebKit equivalents live in the unscoped block at the bottom of
-		// the file because Vue's scoped CSS doesn't always propagate the
-		// data attribute onto ::-webkit-scrollbar pseudo-elements in Chrome.
+		// WebKit equivalents are in the unscoped block below: scoped CSS
+		// data-attrs don't reach ::-webkit-scrollbar pseudo-elements in Chrome.
 		scrollbar-width: thin;
 		scrollbar-color: var(--color-scrollbar) transparent;
 	}
 }
 </style>
 
-<!-- The popover content is teleported to <body>, so scoped styles can't
-     reach it. The bundled NcPopover (legacy frontend, v8) reads
-     `var(--border-radius-large)` on its wrapper/inner, so we override that
-     token scoped to this popover. The newer 9.x line uses
-     `--border-radius-element` instead, so we set both for forward-compat. -->
+<!-- Teleported content; scoped styles can't reach it. NcPopover v8 reads
+     --border-radius-large; v9 reads --border-radius-element. Set both for forward-compat. -->
 <style lang="scss">
 .app-menu__popover-base {
 	--border-radius-large: var(--border-radius-container-large);
 	--border-radius-element: var(--border-radius-container-large);
 }
 
-// The override above is meant for NcPopover's outer wrapper (which reads
-// --border-radius-element in 9.x); without a reset it cascades into our
-// content and inflates AppItem's hover radius to match the popover. Restore
-// the system default (apps/theming/css/default.css) so inner elements use
-// the smaller, Dashboard-widget-like radius.
+// Without this reset the override above cascades into AppItem and inflates
+// its hover radius. Restores the system default from apps/theming/css/default.css.
 .app-menu__popover-base .app-menu__popover {
 	--border-radius-element: 8px;
 }
 
-// Slim scrollbar for the apps grid. Lives outside the scoped block so the
-// ::-webkit-scrollbar pseudo-elements bind reliably in Chrome. !important
-// overrides the global rules in core/css/styles.scss, which otherwise force
-// a 12 px thumb with a transparent border and content-box clip.
+// Outside the scoped block: ::-webkit-scrollbar pseudo-elements need unscoped
+// CSS to bind in Chrome. !important: core/css/styles.scss forces a 12 px thumb.
 .app-menu__popover-base .app-menu__grid {
 	scrollbar-width: thin !important;
 	scrollbar-color: var(--color-scrollbar) transparent !important;

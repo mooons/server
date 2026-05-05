@@ -8,9 +8,7 @@ import type { INavigationEntry } from '../../types/navigation.d.ts'
 import { mount } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-// Hoisted mocks so they exist before the SFC's top-level imports run.
-// `loadState` returns the apps list AppMenu reads on mount; `subscribers`
-// is a manual pub/sub so we can fire 'nextcloud:app-menu.refresh' from a test.
+// Hoisted so mocks exist before the SFC's imports run.
 const initialState = vi.hoisted(() => ({
 	loadState: vi.fn(),
 }))
@@ -67,12 +65,6 @@ function fakeApps(): INavigationEntry[] {
 	]
 }
 
-/**
- * Build an 8-app fixture so tests can exercise a 2-row x 4-col grid.
- * Pass `activeIndex` to mark a specific tile as `active`; defaults to no
- * active app (mimicking a context where the user opens the launcher from
- * a non-app page).
- */
 function eightApps(activeIndex: number = -1): INavigationEntry[] {
 	const ids = ['files', 'mail', 'calendar', 'contacts', 'notes', 'photos', 'talk', 'deck']
 	return ids.map((id, i) => makeApp({
@@ -106,17 +98,9 @@ afterEach(() => {
 	}
 })
 
-/**
- * Force the popover open so the teleported AppItem grid is in the DOM.
- *
- * NcPopover's content is teleported to <body>, so it isn't reachable via
- * `wrapper.find()`. We click the waffle trigger (the user-visible action
- * that toggles `opened`) and poll the document until at least one
- * teleported menuitem has rendered. `vi.waitFor` retries until the
- * assertion passes or its default 1000ms timeout elapses, which is more
- * robust than ad-hoc `setTimeout(0)` + `nextTick` flushes against
- * v-popper's async afterShow hook.
- */
+// Click the waffle trigger and poll until the teleported menuitems are in the
+// DOM. NcPopover teleports to <body> so wrapper.find() can't see them; vi.waitFor
+// retries the DOM query rather than relying on flaky nextTick/setTimeout flushes.
 async function openPopover(wrapper: ReturnType<typeof mount>) {
 	await wrapper.get('.app-menu__waffle').trigger('click')
 	await vi.waitFor(() => {
@@ -129,12 +113,8 @@ describe('core: AppMenu', () => {
 		const wrapper = mount(AppMenu, { attachTo: document.body })
 		await openPopover(wrapper)
 
-		// AppItem renders `role="menuitem"`; non-admin = no "More apps" tile,
-		// so 3 menuitems map 1:1 to fakeApps().
 		const items = document.querySelectorAll('[role="menuitem"]')
 		expect(items).toHaveLength(3)
-		// `.app-item__label` is the user-visible label span; `title` is just
-		// a hover tooltip and not part of the accessible name pipeline.
 		const labels = Array.from(items).map((el) => el.querySelector('.app-item__label')?.textContent?.trim() ?? '')
 		expect(labels).toEqual(['Files', 'Mail', 'Calendar'])
 	})
@@ -146,8 +126,6 @@ describe('core: AppMenu', () => {
 
 		const items = document.querySelectorAll('[role="menuitem"]')
 		expect(items).toHaveLength(4)
-		// Identify the "More apps" tile by its user-visible label rather than
-		// the BEM modifier class -- the class is an implementation detail.
 		const moreApps = Array.from(items).find((el) => el.textContent?.includes('More apps'))
 		expect(moreApps).toBeTruthy()
 	})
@@ -403,21 +381,15 @@ describe('core: AppMenu', () => {
 	})
 
 	describe('focus return on close', () => {
-		// Focus restoration in production is driven by NcPopover's focus-trap
-		// reading the `setReturnFocus` callback we pass it. focus-trap doesn't
-		// fully activate in jsdom (it needs layout the test environment doesn't
-		// supply), so asserting on `document.activeElement` would either pass
-		// for the wrong reason or be flaky. Instead we test the actual contract:
-		// the callback returns the right element based on `openedFrom`, and
-		// `openedFrom` is reset on close so the next open starts clean.
+		// focus-trap doesn't activate in jsdom (needs layout), so we can't assert
+		// on document.activeElement. Instead we call returnFocusTarget() directly
+		// (the same method NcPopover calls on deactivation) and verify openedFrom
+		// is cleared after close.
 		it('returnFocusTarget points at the waffle when opened from the waffle', async () => {
 			const wrapper = mount(AppMenu, { attachTo: document.body })
 			await wrapper.get('.app-menu__waffle').trigger('click')
 
 			const waffle = wrapper.get('.app-menu__waffle').element
-			// Direct method invocation is the cleanest way to verify the
-			// focus-trap callback contract -- NcPopover will call this on
-			// trap deactivation to decide where to restore focus.
 			expect(wrapper.vm.returnFocusTarget()).toBe(waffle)
 		})
 
@@ -435,14 +407,10 @@ describe('core: AppMenu', () => {
 			const currentApp = wrapper.get('.app-menu__current-app').element
 			expect(wrapper.vm.returnFocusTarget()).toBe(currentApp)
 
-			// NcPopover emits `after-hide` once the popover has fully closed.
-			// Triggering it directly mirrors what NcPopover does internally
-			// without needing focus-trap or transition timing in jsdom.
+			// Trigger after-hide directly: focus-trap and transitions don't run in jsdom.
 			wrapper.findComponent({ name: 'NcPopover' }).vm.$emit('after-hide')
 			await wrapper.vm.$nextTick()
 
-			// After close, the next open should start clean: returnFocusTarget
-			// reverts to the waffle (the default for any non-currentApp open).
 			const waffle = wrapper.get('.app-menu__waffle').element
 			expect(wrapper.vm.returnFocusTarget()).toBe(waffle)
 		})

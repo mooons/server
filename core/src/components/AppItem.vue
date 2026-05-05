@@ -110,7 +110,6 @@ const unreadLabel = computed(() => {
 		height: var(--app-item-circle-size);
 		border-radius: 50%;
 		background-color: var(--color-primary-element);
-		// Linear overlay for top highlight + bottom shade, layered on the theme color
 		background-image: linear-gradient(
 			to bottom,
 			rgba(255, 255, 255, 0.18) 0%,
@@ -163,8 +162,7 @@ const unreadLabel = computed(() => {
 		font-weight: bold;
 	}
 
-	// Outlined variant: thin circle border, no fill, no gradient/shadow,
-	// icon stays in its source color instead of being forced white.
+	// Outlined variant: no fill or gradient; icon color is unforced.
 	&--outlined &__circle {
 		background: transparent;
 		background-image: none;

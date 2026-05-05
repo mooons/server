@@ -8,14 +8,11 @@ import type { INavigationEntry } from '../../types/navigation.d.ts'
 import { mount } from '@vue/test-utils'
 import { describe, expect, it, vi } from 'vitest'
 
-// Mock @nextcloud/l10n so the unread-count assertion is deterministic
-// regardless of locale data. `n()` is the plural form: in real code it
-// returns the singular when count===1, plural otherwise. We mirror that.
+// Mock l10n for deterministic output; mirror real n() plural behavior.
 vi.mock('@nextcloud/l10n', () => ({
 	t: (_app: string, text: string) => text,
 	n: (_app: string, singular: string, plural: string, count: number, vars?: Record<string, unknown>) => {
 		const template = count === 1 ? singular : plural
-		// AppItem passes { count }; substitute it like @nextcloud/l10n does.
 		return template.replace(/\{count\}/g, String(vars?.count ?? count))
 	},
 }))
@@ -74,7 +71,6 @@ describe('core: AppItem', () => {
 		const wrapper = mount(AppItem, {
 			propsData: { app: makeApp({ unread: 1 }) },
 		})
-		// hidden-visually span carries the screen-reader announcement.
 		const sr = wrapper.find('.hidden-visually')
 		expect(sr.exists()).toBe(true)
 		expect(sr.text()).toContain('1 notification')

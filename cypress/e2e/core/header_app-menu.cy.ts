@@ -19,13 +19,9 @@ describe('Header: App menu (waffle launcher)', { testIsolation: true }, () => {
 	})
 
 	describe('RTL', () => {
-		// Force the server to render the page in Arabic so the JS bundle loads
-		// with `isRTL()` returning true. Setting `dir="rtl"` on the document
-		// after load only flips CSS direction; the `isRtl` snapshot inside
-		// AppMenu's `popoverSkidding` is read at module init and would stay false.
-		// `force_language` is a system-wide override that takes effect on every
-		// request (see core/src/cypress/e2e/settings/personal-info.cy.ts for the
-		// same pattern).
+		// Force server-side language, not just dir="rtl" on the DOM: isRTL() is
+		// snapshot at module init, so a client-side flip leaves popoverSkidding
+		// at LTR. force_language is a system-wide OCC override.
 		before(() => {
 			// Clear any stale value left behind by a crashed prior run
 			cy.runOccCommand('config:system:delete force_language')
@@ -44,21 +40,14 @@ describe('Header: App menu (waffle launcher)', { testIsolation: true }, () => {
 		})
 
 		it('positions the popover on the start side under RTL', () => {
-			// In RTL, "start" is the right edge. With `placement: bottom-start`
-			// Floating UI anchors the popover to the trigger's right edge, and
-			// the mirrored skidding (+82) tucks it under the logo on that side.
-			// We assert the popover's right edge sits near the trigger's right
-			// edge (within the |skidding| budget plus a small tolerance for
-			// sub-pixel rounding and any container padding the popover applies).
+			// In RTL, bottom-start anchors to the right edge. Assert popover.right
+			// sits near trigger.right within the skidding budget (~82 px + slack).
 			getWaffleTrigger()
 				.should('be.visible')
 				.then(($trigger) => {
 					const triggerRect = $trigger[0].getBoundingClientRect()
 					cy.wrap($trigger).click()
 
-					// The popover content is teleported to <body>, so we look it
-					// up by its scoped container class rather than scoping under
-					// the header.
 					cy.get('.app-menu__popover')
 						.should('be.visible')
 						.then(($popover) => {
@@ -91,9 +80,8 @@ describe('Header: App menu (waffle launcher)', { testIsolation: true }, () => {
 			})
 		})
 
-		// Regression guard: a popover wider than the viewport would push the
-		// page out and force horizontal scrolling on mobile, which is bad UX.
-		// 360 px is the smallest supported width per the project guidelines.
+		// 360 px is the smallest supported width. Regression guard against the
+		// popover overflowing the viewport.
 		it('does not introduce horizontal scroll at 360 px', () => {
 			cy.viewport(360, 640)
 			getWaffleTrigger().click()
@@ -159,9 +147,7 @@ describe('Header: App menu (waffle launcher)', { testIsolation: true }, () => {
 		})
 
 		it('opens the popover with Enter on the waffle trigger', () => {
-			// Focus the trigger directly: tabbing through the full header is
-			// brittle because the number of focusable elements before the
-			// waffle can change (skip-links, search, etc.).
+			// Focus directly: the number of focusable elements before the waffle can change.
 			getWaffleTrigger().focus()
 			cy.focused().type('{enter}')
 			cy.get('.app-menu__popover').should('be.visible')
@@ -172,14 +158,13 @@ describe('Header: App menu (waffle launcher)', { testIsolation: true }, () => {
 			cy.focused().type('{enter}')
 			cy.get('.app-menu__popover').should('be.visible')
 
-			// Wait for focus-trap to land focus on a tile before driving the
-			// keyboard. .should('be.visible') resolves before focus-trap
-			// activation, so .focused() can still be the waffle trigger here.
+			// .should('be.visible') resolves before focus-trap activates; wait
+			// for focus to land on a tile before driving the keyboard.
 			cy.focused().should('have.attr', 'role', 'menuitem')
 
-			// Reset the roving stop to index 0 so 3 ArrowRights advance deterministically
-			// through row 0, regardless of which app is active on login. ArrowRight
-			// clamps at column 3, so without this the test could clamp invisibly.
+			// Home resets to index 0: ArrowRight clamps at col 3, so without
+			// this the test could silently clamp on whichever app happens to
+			// be active in col 2 or 3.
 			cy.focused().type('{home}')
 
 			cy.focused().then(($initial) => {
@@ -208,8 +193,6 @@ describe('Header: App menu (waffle launcher)', { testIsolation: true }, () => {
 			cy.get('.app-menu__popover').should('be.visible')
 			cy.focused().should('have.attr', 'role', 'menuitem').type('{esc}')
 			cy.get('.app-menu__popover').should('not.be.visible')
-			// NcPopover's setReturnFocus callback targets the waffle when
-			// openedFrom is 'waffle' (or null).
 			cy.focused().should('have.class', 'app-menu__waffle')
 		})
 
@@ -218,8 +201,6 @@ describe('Header: App menu (waffle launcher)', { testIsolation: true }, () => {
 			cy.get('.app-menu__popover').should('be.visible')
 			cy.focused().should('have.attr', 'role', 'menuitem').type('{esc}')
 			cy.get('.app-menu__popover').should('not.be.visible')
-			// NcPopover's setReturnFocus callback targets the current-app button
-			// when openedFrom is 'currentApp'.
 			cy.focused().should('have.class', 'app-menu__current-app')
 		})
 	})
